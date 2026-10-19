@@ -110,10 +110,24 @@
             border: 2px dashed #38bdf8 !important;
             transform: scale(0.95);
         }
+        .blast-cell.will-clear {
+            background: rgba(251, 191, 36, 0.75) !important;
+            border: 2px solid #fef08a !important;
+            box-shadow: 0 0 14px rgba(251, 191, 36, 0.85) !important;
+            transform: scale(1.03);
+        }
         .blast-cell.clearing {
             animation: popIn 0.35s reverse forwards;
             background: #fff !important;
             box-shadow: 0 0 20px #38bdf8 !important;
+        }
+        #blast-drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.65));
+            transition: transform 0.04s linear;
         }
     </style>
 </head>
@@ -121,6 +135,8 @@
 <div id="app-shell">
     <!-- Particle FX Overlay Canvas -->
     <canvas id="fx-canvas" class="pointer-events-none absolute inset-0 z-50 w-full h-full"></canvas>
+    <!-- Floating Drag Ghost for 1-Thumb Block Blast -->
+    <div id="blast-drag-ghost" class="hidden"></div>
 
     <!-- TOP STATUS BAR (HUD) -->
     <header class="px-3 pt-2.5 pb-2 bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-md z-20 flex items-center justify-between gap-2 shrink-0">
@@ -322,12 +338,13 @@
                 </div>
             </div>
 
-            <!-- Piece Dock (3 Tap-to-Select or Drag Pieces) -->
-            <div class="mt-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shrink-0">
-                <div class="text-center text-[10px] text-slate-400 mb-1.5" id="blast-instruction">
-                    Sélectionne une forme en bas puis touche la grille pour la poser (les blocs <i class="fa-solid fa-Graduation-Cap text-amber-300"></i> lancent un défi bonus !)
+            <!-- Piece Dock (One-Thumb Amplified Drag & Drop) -->
+            <div class="mt-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shrink-0 select-none touch-none">
+                <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1.5 px-1" id="blast-instruction">
+                    <span><i class="fa-solid fa-hand-pointer text-cyan-400 mr-1"></i>Glisse avec 1 pouce (mouvement amplifié x1.5)</span>
+                    <span class="text-amber-300 font-bold" id="blast-smart-status">IA Grille Active</span>
                 </div>
-                <div id="blast-dock" class="grid grid-cols-3 gap-2 h-20 items-center justify-items-center">
+                <div id="blast-dock" class="grid grid-cols-3 gap-2 h-24 items-center justify-items-center touch-none">
                     <!-- 3 pieces rendered by JS -->
                 </div>
             </div>
@@ -336,43 +353,51 @@
         <!-- ==================== TAB 3: ABYSS DIVER (COPPER SCAPHANDRE) ==================== -->
         <section id="tab-diver" class="hidden h-full flex flex-col justify-between pb-2">
             <!-- Diver Top HUD -->
-            <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-2.5 mb-2 flex items-center justify-between gap-2 shrink-0">
+            <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-2 mb-1.5 flex items-center justify-between gap-2 shrink-0">
                 <!-- Depth -->
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-7 h-7 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-xs">
                         <i class="fa-solid fa-anchor"></i>
                     </div>
                     <div>
-                        <div class="text-[10px] text-slate-400 uppercase leading-none">Profondeur</div>
-                        <div class="text-base font-black text-cyan-300 math-font leading-tight" id="diver-depth">0m</div>
+                        <div class="text-[9px] text-slate-400 uppercase leading-none">Profondeur</div>
+                        <div class="text-sm font-black text-cyan-300 math-font leading-tight" id="diver-depth">0m</div>
                     </div>
                 </div>
 
                 <!-- Oxygen Tank Bar -->
-                <div class="flex-1 max-w-[160px]">
-                    <div class="flex justify-between text-[10px] font-bold mb-0.5">
-                        <span class="text-cyan-300"><i class="fa-solid fa-lungs mr-1"></i>OXYGÈNE (O₂)</span>
+                <div class="flex-1 max-w-[135px]">
+                    <div class="flex justify-between text-[9px] font-bold mb-0.5">
+                        <span class="text-cyan-300"><i class="fa-solid fa-lungs mr-1"></i>O₂</span>
                         <span id="diver-o2-text" class="math-font text-white">100%</span>
                     </div>
-                    <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
+                    <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
                         <div id="diver-o2-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-150" style="width: 100%"></div>
                     </div>
                 </div>
 
+                <!-- Speed / Zen Toggle -->
+                <button onclick="toggleDiverSpeedMode()" id="btn-diver-speed" class="btn-juicy px-2 py-1.5 rounded-xl bg-cyan-950 border border-cyan-400/50 text-cyan-200 text-[10px] font-bold shrink-0">
+                    🐢 Stop-Porte: ON
+                </button>
+
                 <!-- Emergency O2 Math Valve -->
-                <button onclick="triggerDiverEmergencyO2()" class="btn-juicy px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-bold shrink-0">
+                <button onclick="triggerDiverEmergencyO2()" class="btn-juicy px-2 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[10px] font-bold shrink-0">
                     +O₂ <i class="fa-solid fa-bolt"></i>
                 </button>
             </div>
 
             <!-- Active Abyss Gate Question Prompt -->
-            <div id="diver-prompt-box" class="bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 border border-cyan-400/40 rounded-2xl px-3 py-2 mb-2 text-center shadow-lg shrink-0">
-                <div class="text-[10px] uppercase tracking-wider text-amber-300 font-bold" id="diver-gate-label">PROCHAINE ÉCLUSE ABYSSALE</div>
-                <div class="text-xs sm:text-sm font-bold text-white math-font mt-0.5" id="diver-gate-question">Appuie sur PLONGER pour descendre dans l'abîme !</div>
+            <div id="diver-prompt-box" class="bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 border-2 border-cyan-400/50 rounded-2xl px-3 py-2 mb-1.5 text-center shadow-lg shrink-0">
+                <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-amber-300 font-bold">
+                    <span id="diver-gate-label">ÉCLUSE MATHÉMATIQUE</span>
+                    <span id="diver-brake-indicator" class="text-emerald-300"><i class="fa-solid fa-hourglass-half"></i> Temps libre pour lire</span>
+                </div>
+                <div class="text-sm sm:text-base font-black text-white math-font mt-0.5 leading-snug" id="diver-gate-question">Appuie sur PLONGER pour descendre !</div>
             </div>
 
             <!-- HTML5 Canvas for Copper Diver -->
-            <div class="flex-1 relative rounded-3xl overflow-hidden border-2 border-amber-500/30 shadow-2xl bg-slate-950">
+            <div class="flex-1 relative rounded-3xl overflow-hidden border-2 border-amber-500/30 shadow-2xl bg-slate-950 touch-none">
                 <canvas id="diver-canvas" class="w-full h-full block"></canvas>
 
                 <!-- Diver Start / Pause Overlay -->
@@ -382,11 +407,11 @@
                     </div>
                     <h3 class="text-xl font-black text-white">Scaphandrier de l'Abîme</h3>
                     <p class="text-xs text-slate-300 mt-1 max-w-xs">
-                        Plonge toujours plus profond avec ton scaphandre en cuivre ! Franchis la <strong>Porte Mathématique Exacte</strong> pour recharger ton Oxygène ($O_2$) et récolter les trésors.
+                        Le scaphandre s'arrête automatiquement devant chaque écluse pour te laisser tout le temps de lire ! Choisis directement <strong>Porte A (Gauche)</strong> ou <strong>Porte B (Droite)</strong>.
                     </p>
                     <div class="flex gap-2 mt-4">
                         <button onclick="startDiverGame()" class="btn-juicy px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/30">
-                            <i class="fa-solid fa-play mr-1"></i> PLONGER MAINTENANT
+                            <i class="fa-solid fa-play mr-1"></i> PLONGER EN MODE ZEN
                         </button>
                     </div>
                 </div>
@@ -394,11 +419,11 @@
 
             <!-- Touch Left / Right Controls for Mobile Thumb Play -->
             <div class="grid grid-cols-2 gap-2.5 mt-2 shrink-0">
-                <button id="btn-diver-left" onpointerdown="setDiverDir(-1)" onpointerup="setDiverDir(0)" onpointerleave="setDiverDir(0)" class="btn-juicy py-3 rounded-2xl bg-slate-900 border border-slate-700 active:bg-cyan-950 active:border-cyan-400 text-cyan-300 font-extrabold text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-left"></i> GAUCHE (Porte A)
+                <button id="btn-diver-left" onclick="chooseDiverGateSide(0)" onpointerdown="setDiverDir(-1)" onpointerup="setDiverDir(0)" onpointerleave="setDiverDir(0)" class="btn-juicy py-3 rounded-2xl bg-cyan-950/80 border-2 border-cyan-500/60 active:bg-cyan-500 active:text-slate-950 text-cyan-200 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg">
+                    <i class="fa-solid fa-arrow-left"></i> PORTE A (GAUCHE)
                 </button>
-                <button id="btn-diver-right" onpointerdown="setDiverDir(1)" onpointerup="setDiverDir(0)" onpointerleave="setDiverDir(0)" class="btn-juicy py-3 rounded-2xl bg-slate-900 border border-slate-700 active:bg-amber-950 active:border-amber-400 text-amber-300 font-extrabold text-sm flex items-center justify-center gap-2">
-                    DROITE (Porte B) <i class="fa-solid fa-arrow-right"></i>
+                <button id="btn-diver-right" onclick="chooseDiverGateSide(1)" onpointerdown="setDiverDir(1)" onpointerup="setDiverDir(0)" onpointerleave="setDiverDir(0)" class="btn-juicy py-3 rounded-2xl bg-amber-950/80 border-2 border-amber-500/60 active:bg-amber-400 active:text-slate-950 text-amber-200 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg">
+                    PORTE B (DROITE) <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
         </section>
@@ -509,6 +534,23 @@
 
             <!-- Question Body -->
             <div class="py-3 overflow-y-auto custom-scroll space-y-3">
+                <!-- Step-by-Step Progress Indicator -->
+                <div id="qm-step-bar" class="flex items-center justify-between bg-slate-950/90 border border-slate-800 rounded-2xl px-3 py-1.5">
+                    <span id="qm-step-label" class="text-[11px] font-extrabold text-cyan-300 uppercase tracking-wider">
+                        <i class="fa-solid fa-stairs mr-1"></i>Étape 1/3 : Le Symbole Clé
+                    </span>
+                    <div id="qm-step-dots" class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                    </div>
+                </div>
+
+                <!-- Micro Hint / Context Box -->
+                <div id="qm-step-hint" class="text-xs text-indigo-200 bg-indigo-950/60 border border-indigo-500/30 rounded-2xl px-3 py-2 leading-relaxed">
+                    On décompose la formule tranquillement étape par étape.
+                </div>
+
                 <div class="text-sm sm:text-base font-extrabold text-white leading-snug" id="qm-question">
                     Quelle est la définition exacte d'une application surjective ?
                 </div>
@@ -613,6 +655,100 @@
  * Contient toute la théorie, les symboles, les formules à trous (Forge),
  * les questions de compréhension logique et les exemples précis du cours.
  */
+const DIVER_MICRO_GATES = [
+    { course: 1, q: "Que signifie le symbole « x ∈ E » ?", left: "x appartient à E", right: "x est inclus dans E", ans: 0 },
+    { course: 1, q: "Que signifie « A ⊂ E » ?", left: "A sous-ensemble de E", right: "A élément de E", ans: 0 },
+    { course: 1, q: "L'union « A ∪ B » correspond au mot logique :", left: "OU (inclusif)", right: "ET (simultané)", ans: 0 },
+    { course: 1, q: "L'intersection « A ∩ B » correspond au mot :", left: "ET (dans les deux)", right: "OU (l'un ou l'autre)", ans: 0 },
+    { course: 1, q: "Le complémentaire ∁_E(A) contient les x ∈ E tels que :", left: "x ∉ A", right: "x ∈ A", ans: 0 },
+    { course: 1, q: "Comment s'écrit l'ensemble vide ?", left: "∅ (sans accolades)", right: "{ ∅ }", ans: 0 },
+    { course: 1, q: "Quel ensemble représente les entiers naturels (0, 1, 2...) ?", left: "ℕ", right: "ℤ", ans: 0 },
+    { course: 1, q: "Quel ensemble représente les fractions p/q ?", left: "ℚ (Rationnels)", right: "ℝ (Réels)", ans: 0 },
+    { course: 1, q: "Dans ℝ, quelle est la négation de « x > 1/3 » ?", left: "x ≤ 1/3", right: "x < 1/3", ans: 0 },
+    { course: 2, q: "Que signifie le quantificateur « ∀x ∈ E » ?", left: "Pour tout x de E", right: "Il existe un x de E", ans: 0 },
+    { course: 2, q: "Que signifie le quantificateur « ∃x ∈ E » ?", left: "Il existe au moins un x", right: "Pour tout x", ans: 0 },
+    { course: 2, q: "Quand on nie « ∀x, P(x) », le ∀ devient :", left: "∃x, non P(x)", right: "∀x, non P(x)", ans: 0 },
+    { course: 2, q: "Loi de De Morgan : ∁_E(A ∩ B) = ?", left: "∁_E(A) ∪ ∁_E(B)", right: "∁_E(A) ∩ ∁_E(B)", ans: 0 },
+    { course: 2, q: "Loi de De Morgan : ∁_E(A ∪ B) = ?", left: "∁_E(A) ∩ ∁_E(B)", right: "∁_E(A) ∪ ∁_E(B)", ans: 0 },
+    { course: 2, q: "L'implication « P(x) ⇒ Q(x) » se traduit sur les ensembles A et B par :", left: "A ⊂ B", right: "B ⊂ A", ans: 0 },
+    { course: 2, q: "Pour prouver que « P ⇒ Q » est FAUX (contre-exemple), on cherche :", left: "P vrai ET Q faux", right: "P faux ET Q faux", ans: 0 },
+    { course: 2, q: "Quelle est la CONTRAPOSÉE de « P ⇒ Q » ?", left: "(non Q) ⇒ (non P)", right: "Q ⇒ P", ans: 0 },
+    { course: 2, q: "L'équivalence « P ⇔ Q » correspond aux ensembles :", left: "A = B (double inclusion)", right: "A ∩ B = ∅", ans: 0 },
+    { course: 3, q: "Si α ∈ E, alors le singleton {α} vérifie :", left: "{α} ∈ P(E) et {α} ⊂ E", right: "α ∈ P(E)", ans: 0 },
+    { course: 3, q: "Le produit cartésien E × F contient des :", left: "Couples (x, y)", right: "Réunions x ∪ y", ans: 0 },
+    { course: 3, q: "Par convention, combien vaut 0! (zéro factorielle) ?", left: "0! = 1", right: "0! = 0", ans: 0 },
+    { course: 3, q: "Combien vaut 4! (4 factorielle) ?", left: "24 (4×3×2×1)", right: "12", ans: 0 },
+    { course: 3, q: "Formule de C(n, k) (« k parmi n ») :", left: "n! / (k!(n-k)!)", right: "k! / (n!(n-k)!)", ans: 0 },
+    { course: 3, q: "Somme d'une ligne de Pascal : ∑ C(n, k) = ?", left: "2ⁿ (total parties)", right: "n²", ans: 0 },
+    { course: 3, q: "Relation du Triangle de Pascal : C(n, k) = ?", left: "C(n-1,k) + C(n-1,k-1)", right: "C(n-1,k) × C(n-1,k-1)", ans: 0 },
+    { course: 4, q: "L'ensemble des antécédents f⁻¹({y}) est un sous-ensemble de :", left: "E (ensemble de départ)", right: "F (ensemble d'arrivée)", ans: 0 },
+    { course: 4, q: "x appartient à f⁻¹({y}) si et seulement si :", left: "f(x) = y", right: "f(y) = x", ans: 0 },
+    { course: 4, q: "L'image directe f(A) est un sous-ensemble de :", left: "F (arrivée)", right: "E (départ)", ans: 0 },
+    { course: 4, q: "Comment note-t-on l'image entière f(E) de l'application ?", left: "Im(f)", right: "f⁻¹(E)", ans: 0 },
+    { course: 4, q: "x ∈ f⁻¹(B) (image réciproque de B) signifie :", left: "f(x) ∈ B", right: "x ∈ B", ans: 0 },
+    { course: 5, q: "Une application INJECTIVE signifie :", left: "Aucun doublon d'image", right: "Tout F est atteint", ans: 0 },
+    { course: 5, q: "Pour prouver que f est injective, on montre :", left: "f(x) = f(x') ⇒ x = x'", right: "x = x' ⇒ f(x) = f(x')", ans: 0 },
+    { course: 5, q: "Caractérisation d'une INJECTION par le nombre d'antécédents :", left: "Card(f⁻¹({y})) ≤ 1", right: "Card(f⁻¹({y})) ≥ 1", ans: 0 },
+    { course: 5, q: "Dans la composée (g ∘ f)(x), quelle fonction s'applique en 1er ?", left: "f d'abord : g(f(x))", right: "g d'abord : f(g(x))", ans: 0 },
+    { course: 6, q: "Caractérisation d'une SURJECTION par les antécédents :", left: "Card(f⁻¹({y})) ≥ 1", right: "Card(f⁻¹({y})) ≤ 1", ans: 0 },
+    { course: 6, q: "f : E → F est surjective si et seulement si :", left: "Im(f) = F", right: "Im(f) = ∅", ans: 0 },
+    { course: 6, q: "Caractérisation d'une BIJECTION par les antécédents :", left: "Card(f⁻¹({y})) = 1", right: "Card(f⁻¹({y})) ≥ 2", ans: 0 },
+    { course: 6, q: "Si f : E → F est bijective, que vaut f⁻¹ ∘ f ?", left: "id_E (identité de E)", right: "0", ans: 0 }
+];
+
+// Automatic Step-by-Step Generator for Every Question in QUESTIONS_DB
+function getQuestionSteps(q) {
+    if (q.steps) return q.steps;
+    // Automatically build a 2-step or 3-step guided breakdown if not manually specified
+    const steps = [];
+    if (q.forgeTokens && q.forgeTokens.length >= 2) {
+        steps.push({
+            label: "Étape 1/3 : Le Point de Départ",
+            hint: "Identifie d'abord par quel symbole ou quantificateur commence cette propriété.",
+            prompt: `Par quel bloc commence la formule pour : « ${q.q} » ?`,
+            options: [
+                q.forgeTokens[0],
+                (q.forgeDistractors && q.forgeDistractors[0]) ? q.forgeDistractors[0] : "∅",
+                q.forgeTokens[q.forgeTokens.length - 1]
+            ],
+            ans: 0
+        });
+        steps.push({
+            label: "Étape 2/3 : Le Cœur Logique",
+            hint: `Début validé : « ${q.forgeTokens[0]} ». Voyons maintenant la suite logique !`,
+            prompt: `Quel est le cœur de la condition qui suit « ${q.forgeTokens[0]} » ?`,
+            options: [
+                q.forgeTokens.slice(1).join(" "),
+                (q.forgeDistractors && q.forgeDistractors.join(" ")) || "x = 0",
+                "∅"
+            ],
+            ans: 0
+        });
+    } else {
+        steps.push({
+            label: "Étape 1/2 : L'Intuition Clé",
+            hint: q.mnemonic,
+            prompt: `Indice préalable : Quelle est la règle d'or à utiliser ici ?`,
+            options: [
+                q.mnemonic.replace(/^Mémo visuel : |^Astuce : |^Piège classique : /, ""),
+                "Il suffit de remplacer x par 0 dans tous les cas",
+                "Tous les ensembles sont toujours égaux à ∅"
+            ],
+            ans: 0
+        });
+    }
+    steps.push({
+        label: steps.length === 2 ? "Étape 3/3 : Validation Finale" : "Étape 2/2 : Validation Finale",
+        hint: "Tu as toutes les briques en main ! Valide maintenant la réponse complète.",
+        prompt: q.q,
+        options: q.options,
+        ans: q.ans,
+        isFinalForge: Boolean(q.forgeTokens)
+    });
+    q.steps = steps;
+    return steps;
+}
+
 const DAYS_ROADMAP = [
     { day: 1, course: 1, title: "Ensembles, ⊂, ∩, ∪, ∁E & Cardinal", desc: "Appartenance, inclusion, opérations & ensembles ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ" },
     { day: 2, course: 1, title: "Propriétés & Quantificateurs ∀, ∃", desc: "Sous-ensembles par propriété caractéristique et négations" },
@@ -1870,6 +2006,8 @@ function switchTab(tabName) {
 let quizContext = {
     mode: "training", // "training", "blast_boost", "diver_o2", "blitz"
     currentQ: null,
+    steps: [],
+    stepIndex: 0,
     isForge: false,
     builtTokens: [],
     blitzTimeLeft: 60,
@@ -1882,34 +2020,52 @@ function openQuizModal(mode, questionObj, onSuccess = null) {
     quizContext.mode = mode;
     quizContext.currentQ = questionObj || pickSmartQuestion();
     quizContext.onSuccessCallback = onSuccess;
-    quizContext.builtTokens = [];
-
-    const q = quizContext.currentQ;
-    // Use Formula Forge 45% of the time when the question has forgeTokens
-    quizContext.isForge = Boolean(q.forgeTokens && Math.random() < 0.45);
+    quizContext.steps = getQuestionSteps(quizContext.currentQ);
+    // In blitz mode, go straight to the final step for speed; otherwise decompose step-by-step!
+    quizContext.stepIndex = (mode === "blitz") ? quizContext.steps.length - 1 : 0;
 
     document.getElementById("quiz-modal").classList.remove("hidden");
+    renderCurrentQuizStep();
+}
+
+function renderCurrentQuizStep() {
+    const q = quizContext.currentQ;
+    const step = quizContext.steps[quizContext.stepIndex];
+    const totalSteps = quizContext.steps.length;
+
+    quizContext.builtTokens = [];
+    quizContext.isForge = Boolean(step.isFinalForge && q.forgeTokens && quizContext.mode !== "blitz");
+
     document.getElementById("qm-feedback").classList.add("hidden");
     document.getElementById("qm-footer").classList.add("hidden");
     document.getElementById("qm-badge").textContent = `COURS ${q.course} • JOUR ${q.day}`;
 
+    // Step indicator bar
+    document.getElementById("qm-step-label").innerHTML = `<i class="fa-solid fa-stairs mr-1"></i>${step.label}`;
+    document.getElementById("qm-step-hint").innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-cyan-400 mr-1"></i>${step.hint}`;
+    const dotsHtml = quizContext.steps.map((_, idx) => {
+        const color = idx < quizContext.stepIndex ? "bg-emerald-400" : (idx === quizContext.stepIndex ? "bg-cyan-400 scale-125" : "bg-slate-700");
+        return `<span class="w-2.5 h-2.5 rounded-full transition-all ${color}"></span>`;
+    }).join("");
+    document.getElementById("qm-step-dots").innerHTML = dotsHtml;
+
     const modeLabels = {
-        training: "🧠 Entraînement Ciblé",
+        training: "🧠 Décomposé par Étapes",
         blast_boost: "⚡ Surcharge Block Blast",
         diver_o2: "🤿 Valve d'Oxygène O₂",
         blitz: `🔥 Blitz Chrono (${quizContext.blitzScore} pts)`
     };
-    document.getElementById("qm-mode-tag").textContent = modeLabels[mode] || "Défi";
+    document.getElementById("qm-mode-tag").textContent = modeLabels[quizContext.mode] || "Défi";
 
     const timerPill = document.getElementById("qm-timer-pill");
-    if (mode === "blitz") {
+    if (quizContext.mode === "blitz") {
         timerPill.classList.remove("hidden");
         timerPill.textContent = `${quizContext.blitzTimeLeft}s`;
     } else {
         timerPill.classList.add("hidden");
     }
 
-    document.getElementById("qm-question").textContent = q.q;
+    document.getElementById("qm-question").textContent = step.prompt;
 
     const forgeArea = document.getElementById("qm-forge-area");
     const optionsArea = document.getElementById("qm-options");
@@ -1921,7 +2077,7 @@ function openQuizModal(mode, questionObj, onSuccess = null) {
     } else {
         forgeArea.classList.add("hidden");
         optionsArea.classList.remove("hidden");
-        renderMcqOptions();
+        renderMcqOptions(step);
     }
 }
 
@@ -1936,7 +2092,7 @@ function renderForgeTokens() {
                 ${t}
             </span>
         `).join("")
-        : `<span class="text-xs text-slate-500 italic">Touche les blocs ci-dessous pour construire la formule...</span>`;
+        : `<span class="text-xs text-slate-400 italic">Touche les briques dans l'ordre (${q.forgeTokens.length} briques attendues)...</span>`;
 
     if (!q._shuffledBank) {
         const all = [...q.forgeTokens, ...(q.forgeDistractors || [])];
@@ -1976,22 +2132,22 @@ function submitForgeAnswer() {
     handleQuizResult(expected === actual);
 }
 
-function renderMcqOptions() {
-    const q = quizContext.currentQ;
-    const indices = q.options.map((_, i) => i).sort(() => Math.random() - 0.5);
+function renderMcqOptions(stepObj) {
+    const step = stepObj || quizContext.steps[quizContext.stepIndex];
+    const uniqueOpts = step.options;
+    const indices = uniqueOpts.map((_, i) => i).sort(() => Math.random() - 0.5);
     const optionsArea = document.getElementById("qm-options");
     optionsArea.innerHTML = indices.map(origIdx => `
         <button onclick="selectMcqOption(${origIdx}, this)" class="btn-juicy w-full text-left p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-xs sm:text-sm font-semibold text-slate-100 math-font flex items-center justify-between gap-2">
-            <span>${q.options[origIdx]}</span>
+            <span>${uniqueOpts[origIdx]}</span>
             <i class="fa-regular fa-circle text-slate-500 shrink-0"></i>
         </button>
     `).join("");
 }
 
 function selectMcqOption(selectedIdx, btnEl) {
-    const q = quizContext.currentQ;
-    const isCorrect = selectedIdx === q.ans;
-    // Disable further clicks
+    const step = quizContext.steps[quizContext.stepIndex];
+    const isCorrect = selectedIdx === step.ans;
     const allBtns = document.querySelectorAll("#qm-options button");
     allBtns.forEach(b => b.disabled = true);
 
@@ -2000,6 +2156,18 @@ function selectMcqOption(selectedIdx, btnEl) {
     } else {
         btnEl.className = "w-full text-left p-3 rounded-2xl bg-rose-950/90 border-2 border-rose-500 text-xs sm:text-sm font-bold text-rose-200 math-font flex items-center justify-between gap-2";
     }
+
+    // If this is an intermediate step and the player got it right, advance smoothly to the next step!
+    if (isCorrect && quizContext.stepIndex < quizContext.steps.length - 1) {
+        playSound("pop");
+        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, "#38bdf8", 14);
+        setTimeout(() => {
+            quizContext.stepIndex += 1;
+            renderCurrentQuizStep();
+        }, 420);
+        return;
+    }
+
     handleQuizResult(isCorrect);
 }
 
@@ -2105,8 +2273,10 @@ const SHAPES = [
     { matrix: [[1, 1], [1, 1]], color: "#f43f5e" }, // 2x2 Square
     { matrix: [[1, 0], [1, 1]], color: "#10b981" }, // Small L
     { matrix: [[0, 1], [1, 1]], color: "#10b981" },
+    { matrix: [[1, 1], [1, 0]], color: "#10b981" },
     { matrix: [[1, 1, 1], [0, 1, 0]], color: "#f97316" }, // T shape
-    { matrix: [[1, 1, 1, 1]], color: "#06b6d4" } // 1x4
+    { matrix: [[1, 1, 1, 1]], color: "#06b6d4" }, // 1x4
+    { matrix: [[1], [1], [1], [1]], color: "#06b6d4" } // 4x1
 ];
 
 const THEOREMS_TICKER = [
@@ -2126,7 +2296,15 @@ let blastState = {
     score: 0,
     combo: 1,
     dock: [null, null, null],
-    selectedDockIdx: 0
+    selectedDockIdx: 0,
+    dragging: {
+        active: false,
+        dockIdx: -1,
+        startX: 0,
+        startY: 0,
+        targetR: -1,
+        targetC: -1
+    }
 };
 
 function initBlastGame() {
@@ -2145,10 +2323,44 @@ function resetBlastGame() {
     showToast("Nouvelle grille Block Blast prête !", "fa-cubes-stacked");
 }
 
+// Helper: Check if a given shape matrix can fit ANYWHERE on the current 8x8 board
+function canShapeFitAnywhere(matrix, grid = blastState.grid) {
+    const tempPiece = { matrix, used: false };
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            if (canPlacePieceOnGrid(tempPiece, r, c, grid)) return true;
+        }
+    }
+    return false;
+}
+
+// Helper: Check if a shape can complete at least one row or column right now
+function doesShapeCompleteLineAnywhere(matrix) {
+    const tempPiece = { matrix, used: false };
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            if (canPlacePieceOnGrid(tempPiece, r, c, blastState.grid)) {
+                const { fullRows, fullCols } = getSimulatedLineClears(tempPiece, r, c);
+                if (fullRows.length + fullCols.length > 0) return true;
+            }
+        }
+    }
+    return false;
+}
+
 function spawnDockPieces() {
     const isEmerald = state.ownedItems.includes("theme_emerald");
+    // Filter shapes that actually fit on the current board so the player isn't unfairly blocked
+    const fittingShapes = SHAPES.filter(s => canShapeFitAnywhere(s.matrix));
+    const lineClearingShapes = fittingShapes.filter(s => doesShapeCompleteLineAnywhere(s.matrix));
+
     for (let i = 0; i < 3; i++) {
-        const template = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        let pool = fittingShapes.length > 0 ? fittingShapes : [SHAPES[0]];
+        // Make piece 0 smart: prioritize a shape that helps clear a line if one exists!
+        if (i === 0 && lineClearingShapes.length > 0) {
+            pool = lineClearingShapes;
+        }
+        const template = pool[Math.floor(Math.random() * pool.length)];
         const isMathCharged = (i === 1); // Middle piece carries a Math Bonus Rune
         blastState.dock[i] = {
             matrix: template.matrix,
@@ -2157,7 +2369,6 @@ function spawnDockPieces() {
             used: false
         };
     }
-    // Select first available piece
     blastState.selectedDockIdx = 0;
 }
 
@@ -2168,12 +2379,14 @@ function renderBlastGrid() {
         for (let c = 0; c < 8; c++) {
             const cellColor = blastState.grid[r][c];
             const div = document.createElement("div");
-            div.className = `blast-cell cursor-pointer ${cellColor ? 'filled' : ''}`;
+            div.className = `blast-cell ${cellColor ? 'filled' : ''}`;
             if (cellColor) {
                 div.style.backgroundColor = cellColor;
             }
-            div.onpointerenter = () => previewBlastPlacement(r, c);
-            div.onclick = () => placeBlastPiece(r, c);
+            // Fallback tap-to-place if user taps cell directly
+            div.onclick = () => {
+                if (!blastState.dragging.active) placeBlastPiece(r, c);
+            };
             div.dataset.r = r;
             div.dataset.c = c;
             gridEl.appendChild(div);
@@ -2187,37 +2400,148 @@ function renderBlastDock() {
     const dockEl = document.getElementById("blast-dock");
     dockEl.innerHTML = blastState.dock.map((piece, idx) => {
         if (!piece || piece.used) {
-            return `<div class="w-20 h-16 rounded-xl border border-slate-800/50 flex items-center justify-center text-slate-700 text-xs">Posé</div>`;
+            return `<div class="w-24 h-20 rounded-2xl border border-slate-800/40 flex items-center justify-center text-slate-700 text-[10px]">Posé</div>`;
         }
-        const isSelected = blastState.selectedDockIdx === idx;
+        const isBeingDragged = blastState.dragging.active && blastState.dragging.dockIdx === idx;
         const rows = piece.matrix.length;
         const cols = piece.matrix[0].length;
+        const fitsSomewhere = canShapeFitAnywhere(piece.matrix);
         let miniCells = "";
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 const on = piece.matrix[r][c];
-                miniCells += `<div class="w-3.5 h-3.5 rounded-[3px]" style="background:${on ? piece.color : 'transparent'}; border:${on ? '1px solid rgba(255,255,255,0.4)' : 'none'}"></div>`;
+                miniCells += `<div class="w-4 h-4 rounded-[4px]" style="background:${on ? piece.color : 'transparent'}; border:${on ? '1px solid rgba(255,255,255,0.45)' : 'none'}"></div>`;
             }
         }
         return `
-            <button onclick="selectDockPiece(${idx})" class="btn-juicy relative p-2 rounded-2xl border-2 ${isSelected ? 'border-cyan-400 bg-cyan-950/50 scale-105' : 'border-slate-800 bg-slate-950/60'} flex flex-col items-center justify-center h-full w-full">
-                ${piece.isMath ? '<span class="absolute -top-2 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] shadow">🧠 +OR</span>' : ''}
-                <div class="grid gap-0.5" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
+            <div onpointerdown="startBlastDrag(event, ${idx})" class="cursor-grab active:cursor-grabbing select-none touch-none relative p-2 rounded-2xl border-2 ${isBeingDragged ? 'opacity-25 scale-90 border-cyan-500' : (fitsSomewhere ? 'border-slate-700/80 bg-slate-950/80 hover:border-cyan-400' : 'border-rose-500/40 bg-rose-950/30 opacity-60')} flex flex-col items-center justify-center h-full w-full transition-transform">
+                ${piece.isMath ? '<span class="pointer-events-none absolute -top-2 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] shadow">🧠 +OR</span>' : ''}
+                <div class="pointer-events-none grid gap-0.5" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
                     ${miniCells}
                 </div>
-            </button>
+            </div>
         `;
     }).join("");
 }
 
-function selectDockPiece(idx) {
-    if (!blastState.dock[idx] || blastState.dock[idx].used) return;
+function startBlastDrag(e, idx) {
+    const piece = blastState.dock[idx];
+    if (!piece || piece.used) return;
+    e.preventDefault();
     playSound("pop");
+
     blastState.selectedDockIdx = idx;
+    blastState.dragging.active = true;
+    blastState.dragging.dockIdx = idx;
+    blastState.dragging.startX = e.clientX;
+    blastState.dragging.startY = e.clientY;
+    blastState.dragging.targetR = -1;
+    blastState.dragging.targetC = -1;
+
+    // Build floating ghost piece matched to grid cell size
+    const gridEl = document.getElementById("blast-grid");
+    const gridRect = gridEl.getBoundingClientRect();
+    const cellSize = Math.floor((gridRect.width - 24) / 8);
+
+    const ghost = document.getElementById("blast-drag-ghost");
+    const rows = piece.matrix.length;
+    const cols = piece.matrix[0].length;
+    let html = `<div class="grid gap-1" style="grid-template-columns: repeat(${cols}, ${cellSize}px)">`;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const on = piece.matrix[r][c];
+            html += `<div style="width:${cellSize}px; height:${cellSize}px; border-radius:8px; background:${on ? piece.color : 'transparent'}; border:${on ? '2px solid rgba(255,255,255,0.75)' : 'none'}; box-shadow:${on ? '0 4px 12px rgba(0,0,0,0.45)' : 'none'}"></div>`;
+        }
+    }
+    html += `</div>`;
+    ghost.innerHTML = html;
+    ghost.classList.remove("hidden");
+
     renderBlastDock();
+    updateBlastDragPosition(e.clientX, e.clientY);
 }
 
-function canPlacePiece(piece, startR, startC) {
+function updateBlastDragPosition(clientX, clientY) {
+    if (!blastState.dragging.active) return;
+    const piece = blastState.dock[blastState.dragging.dockIdx];
+    if (!piece) return;
+
+    // 1-Thumb Amplification:
+    // Amplify horizontal movement by 1.45x and vertical movement by 1.55x + lift 85px above the thumb!
+    const dx = (clientX - blastState.dragging.startX) * 1.45;
+    const dy = (clientY - blastState.dragging.startY) * 1.55;
+    const virtualX = blastState.dragging.startX + dx;
+    const virtualY = blastState.dragging.startY + dy - 85; // Lifted above thumb
+
+    const ghost = document.getElementById("blast-drag-ghost");
+    ghost.style.left = `${virtualX}px`;
+    ghost.style.top = `${virtualY}px`;
+
+    // Compute which cell on #blast-grid corresponds to the top-left of the floating piece
+    const gridEl = document.getElementById("blast-grid");
+    const rect = gridEl.getBoundingClientRect();
+    const cellSize = rect.width / 8;
+
+    const rows = piece.matrix.length;
+    const cols = piece.matrix[0].length;
+    const pieceWidth = cols * cellSize;
+    const pieceHeight = rows * cellSize;
+
+    const topLeftX = virtualX - pieceWidth / 2;
+    const topLeftY = virtualY - pieceHeight / 2;
+
+    const approxC = Math.round((topLeftX - rect.left) / cellSize);
+    const approxR = Math.round((topLeftY - rect.top) / cellSize);
+
+    // Magnetic snap: check exact cell first, or nearest 1-cell neighbor if exact cell is slightly off
+    let bestR = -1;
+    let bestC = -1;
+    const candidates = [
+        [approxR, approxC],
+        [approxR - 1, approxC],
+        [approxR + 1, approxC],
+        [approxR, approxC - 1],
+        [approxR, approxC + 1]
+    ];
+    for (const [cr, cc] of candidates) {
+        if (canPlacePiece(piece, cr, cc)) {
+            bestR = cr;
+            bestC = cc;
+            break;
+        }
+    }
+
+    blastState.dragging.targetR = bestR;
+    blastState.dragging.targetC = bestC;
+    previewBlastPlacement(bestR, bestC);
+}
+
+window.addEventListener("pointermove", (e) => {
+    if (blastState.dragging.active) {
+        updateBlastDragPosition(e.clientX, e.clientY);
+    }
+});
+
+window.addEventListener("pointerup", () => {
+    if (!blastState.dragging.active) return;
+    const { dockIdx, targetR, targetC } = blastState.dragging;
+    blastState.dragging.active = false;
+
+    const ghost = document.getElementById("blast-drag-ghost");
+    ghost.classList.add("hidden");
+
+    if (targetR !== -1 && targetC !== -1) {
+        blastState.selectedDockIdx = dockIdx;
+        placeBlastPiece(targetR, targetC);
+    } else {
+        // Clear previews and snap back to dock
+        const allCells = document.querySelectorAll("#blast-grid .blast-cell");
+        allCells.forEach(el => el.classList.remove("preview-ok", "will-clear"));
+        renderBlastDock();
+    }
+});
+
+function canPlacePieceOnGrid(piece, startR, startC, grid) {
     if (!piece || piece.used) return false;
     const rows = piece.matrix.length;
     const cols = piece.matrix[0].length;
@@ -2227,19 +2551,49 @@ function canPlacePiece(piece, startR, startC) {
                 const nr = startR + r;
                 const nc = startC + c;
                 if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) return false;
-                if (blastState.grid[nr][nc] !== null) return false;
+                if (grid[nr][nc] !== null) return false;
             }
         }
     }
     return true;
 }
 
+function canPlacePiece(piece, startR, startC) {
+    return canPlacePieceOnGrid(piece, startR, startC, blastState.grid);
+}
+
+function getSimulatedLineClears(piece, startR, startC) {
+    const temp = blastState.grid.map(row => [...row]);
+    const rows = piece.matrix.length;
+    const cols = piece.matrix[0].length;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (piece.matrix[r][c]) {
+                temp[startR + r][startC + c] = piece.color || "#38bdf8";
+            }
+        }
+    }
+    const fullRows = [];
+    const fullCols = [];
+    for (let r = 0; r < 8; r++) {
+        if (temp[r].every(cell => cell !== null)) fullRows.push(r);
+    }
+    for (let c = 0; c < 8; c++) {
+        let colFull = true;
+        for (let r = 0; r < 8; r++) {
+            if (temp[r][c] === null) colFull = false;
+        }
+        if (colFull) fullCols.push(c);
+    }
+    return { fullRows, fullCols };
+}
+
 function previewBlastPlacement(startR, startC) {
     const allCells = document.querySelectorAll("#blast-grid .blast-cell");
-    allCells.forEach(el => el.classList.remove("preview-ok"));
+    allCells.forEach(el => el.classList.remove("preview-ok", "will-clear"));
 
     const piece = blastState.dock[blastState.selectedDockIdx];
-    if (!canPlacePiece(piece, startR, startC)) return;
+    if (startR < 0 || startC < 0 || !canPlacePiece(piece, startR, startC)) return;
 
     const rows = piece.matrix.length;
     const cols = piece.matrix[0].length;
@@ -2251,6 +2605,21 @@ function previewBlastPlacement(startR, startC) {
             }
         }
     }
+
+    // Highlight full rows/columns that will explode if dropped here!
+    const { fullRows, fullCols } = getSimulatedLineClears(piece, startR, startC);
+    fullRows.forEach(r => {
+        for (let c = 0; c < 8; c++) {
+            const cell = document.querySelector(`#blast-grid .blast-cell[data-r="${r}"][data-c="${c}"]`);
+            if (cell) cell.classList.add("will-clear");
+        }
+    });
+    fullCols.forEach(c => {
+        for (let r = 0; r < 8; r++) {
+            const cell = document.querySelector(`#blast-grid .blast-cell[data-r="${r}"][data-c="${c}"]`);
+            if (cell) cell.classList.add("will-clear");
+        }
+    });
 }
 
 function placeBlastPiece(startR, startC) {
@@ -2263,23 +2632,25 @@ function placeBlastPiece(startR, startC) {
     playSound("pop");
     const rows = piece.matrix.length;
     const cols = piece.matrix[0].length;
-    let placedCells = 0;
+    let cellsPlaced = 0;
+
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (piece.matrix[r][c]) {
                 blastState.grid[startR + r][startC + c] = piece.color;
-                placedCells++;
+                cellsPlaced++;
             }
         }
     }
 
     piece.used = true;
-    blastState.score += placedCells * 10 * blastState.combo;
+    blastState.score += cellsPlaced * 10;
     updateMissionProgress("m_blast", 1);
 
-    // Check full rows and columns
+    // Check for completed rows and columns
     const fullRows = [];
     const fullCols = [];
+
     for (let r = 0; r < 8; r++) {
         if (blastState.grid[r].every(cell => cell !== null)) fullRows.push(r);
     }
@@ -2291,12 +2662,13 @@ function placeBlastPiece(startR, startC) {
         if (colFull) fullCols.push(c);
     }
 
-    const linesCleared = fullRows.length + fullCols.length;
-    if (linesCleared > 0) {
+    const totalLines = fullRows.length + fullCols.length;
+    if (totalLines > 0) {
         playSound("clear");
-        blastState.combo += linesCleared;
-        blastState.score += linesCleared * 150 * blastState.combo;
-        addRewards(linesCleared * 20, linesCleared * 25);
+        blastState.combo += totalLines;
+        const lineBonus = totalLines * 120 * blastState.combo;
+        blastState.score += lineBonus;
+        addRewards(totalLines * 18, totalLines * 25);
 
         fullRows.forEach(r => {
             for (let c = 0; c < 8; c++) blastState.grid[r][c] = null;
@@ -2305,15 +2677,28 @@ function placeBlastPiece(startR, startC) {
             for (let r = 0; r < 8; r++) blastState.grid[r][c] = null;
         });
 
-        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, "#f43f5e", 35);
-        document.getElementById("blast-theorem-hint").textContent = THEOREMS_TICKER[Math.floor(Math.random() * THEOREMS_TICKER.length)];
-        showToast(`💥 ${linesCleared} Ligne(s) complétée(s) ! Combo x${blastState.combo}`, "fa-fire");
+        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, "#fbbf24", 35);
+        const thm = THEOREMS_TICKER[Math.floor(Math.random() * THEOREMS_TICKER.length)];
+        document.getElementById("blast-theorem-hint").textContent = thm;
+        showToast(`💥 ${totalLines} Ligne(s) ! Combo x${blastState.combo} (+${lineBonus} pts)`, "fa-fire");
     } else {
         blastState.combo = 1;
     }
 
     if (blastState.score > state.blastBest) {
         state.blastBest = blastState.score;
+    }
+
+    // If piece was a Math-Charged rune, give bonus or trigger a quick step-by-step challenge on line clear
+    if (piece.isMath && totalLines > 0) {
+        setTimeout(() => {
+            openQuizModal("blast_boost", pickSmartQuestion(), () => {
+                blastState.score += 250;
+                if (blastState.score > state.blastBest) state.blastBest = blastState.score;
+                renderBlastGrid();
+                showToast("🧠 Bonus Rune Mathématique : +250 pts !", "fa-brain");
+            });
+        }, 260);
     }
 
     // Select next unused piece or respawn dock
@@ -2324,41 +2709,36 @@ function placeBlastPiece(startR, startC) {
         blastState.selectedDockIdx = nextIdx;
     }
 
+    // Check if any remaining piece in dock can fit on the board
+    const anyCanFit = blastState.dock.some(p => p && !p.used && canShapeFitAnywhere(p.matrix));
+    if (!anyCanFit) {
+        document.getElementById("blast-smart-status").textContent = "Grille bloquée : Défi Sauvetage !";
+        setTimeout(() => {
+            showToast("⚠️ Plus de place ! Réussis ce défi pour libérer le centre !", "fa-life-ring");
+            triggerBlastMathBoost();
+        }, 380);
+    } else {
+        document.getElementById("blast-smart-status").textContent = "IA Grille Active";
+    }
+
     renderBlastGrid();
     renderBlastDock();
     saveState();
-
-    // If piece was a Math Charged block, pop a quick reward quiz!
-    if (piece.isMath) {
-        setTimeout(() => {
-            openQuizModal("blast_boost", pickSmartQuestion(), () => {
-                blastState.score += 250;
-                if (blastState.score > state.blastBest) state.blastBest = blastState.score;
-                renderBlastGrid();
-                showToast("🧠 Bonus Mathématique : +250 Points !", "fa-wand-magic-sparkles");
-            });
-        }, 260);
-    }
 }
 
 function triggerBlastMathBoost() {
-    playSound("pop");
     openQuizModal("blast_boost", pickSmartQuestion(), () => {
-        // Clear 3 random filled cells & give golden 1x1 omni blocks!
+        // Clear central 4x4 area to rescue or boost the player
         for (let r = 2; r <= 5; r++) {
             for (let c = 2; c <= 5; c++) {
                 blastState.grid[r][c] = null;
             }
         }
-        blastState.dock = [
-            { matrix: [[1]], color: "#fbbf24", isMath: false, used: false },
-            { matrix: [[1]], color: "#fbbf24", isMath: false, used: false },
-            { matrix: [[1, 1]], color: "#38bdf8", isMath: true, used: false }
-        ];
-        blastState.selectedDockIdx = 0;
+        spawnDockPieces();
         renderBlastGrid();
         renderBlastDock();
-        showToast("✨ Centre de la grille nettoyé + Blocs Joker 1x1 dorés !", "fa-star");
+        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, "#38bdf8", 35);
+        showToast("⚡ Centre de la grille nettoyé + Nouveaux blocs !", "fa-wand-magic-sparkles");
     });
 }
 
@@ -2372,6 +2752,7 @@ const diverCtx = diverCanvas.getContext("2d");
 
 let diverState = {
     running: false,
+    stopAtGateMode: true, // Stops automatically in front of the gate so the user has unlimited time to read!
     x: 160,
     y: 95,
     vx: 0,
@@ -2387,6 +2768,21 @@ let diverState = {
     correctSide: 0 // 0 = Left, 1 = Right
 };
 
+function toggleDiverSpeedMode() {
+    playSound("pop");
+    diverState.stopAtGateMode = !diverState.stopAtGateMode;
+    const btn = document.getElementById("btn-diver-speed");
+    if (diverState.stopAtGateMode) {
+        btn.innerHTML = "🐢 Stop-Porte: ON";
+        btn.className = "btn-juicy px-2 py-1.5 rounded-xl bg-cyan-950 border border-cyan-400/50 text-cyan-200 text-[10px] font-bold shrink-0";
+        showToast("Mode Stop-Porte : Le scaphandre attend ta réponse devant chaque écluse !", "fa-pause");
+    } else {
+        btn.innerHTML = "🌊 Fluide Lent";
+        btn.className = "btn-juicy px-2 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 text-[10px] font-bold shrink-0";
+        showToast("Mode Fluide Lent : Descente douce continue !", "fa-water");
+    }
+}
+
 function resizeDiverCanvas() {
     const parent = diverCanvas.parentElement;
     if (parent && parent.clientWidth > 0) {
@@ -2401,30 +2797,48 @@ function setDiverDir(d) {
     diverState.dir = d;
 }
 
+// Instant Gate Selection when clicking Left (Porte A) or Right (Porte B)
+function chooseDiverGateSide(sideIdx) {
+    if (!diverState.running || !diverState.gate) return;
+    const w = diverCanvas.width;
+    diverState.x = (sideIdx === 0) ? w * 0.25 : w * 0.75;
+    diverState.gate.choiceLockedIn = true;
+}
+
 // Keyboard support for desktop testing
 window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "a") diverState.dir = -1;
-    if (e.key === "ArrowRight" || e.key === "d") diverState.dir = 1;
+    if (e.key === "ArrowLeft" || e.key === "a") {
+        diverState.dir = -1;
+        chooseDiverGateSide(0);
+    }
+    if (e.key === "ArrowRight" || e.key === "d") {
+        diverState.dir = 1;
+        chooseDiverGateSide(1);
+    }
 });
 window.addEventListener("keyup", (e) => {
     if (["ArrowLeft", "ArrowRight", "a", "d"].includes(e.key)) diverState.dir = 0;
 });
 
 function spawnDiverGate() {
-    const q = pickSmartQuestion();
-    diverState.currentQ = q;
+    let pool = DIVER_MICRO_GATES;
+    if (state.targetCourse > 0) {
+        const filtered = DIVER_MICRO_GATES.filter(g => g.course === state.targetCourse);
+        if (filtered.length > 0) pool = filtered;
+    }
+    const micro = pool[Math.floor(Math.random() * pool.length)];
+    diverState.currentQ = micro;
     diverState.correctSide = Math.random() < 0.5 ? 0 : 1;
-    const wrongOption = q.options.find((_, idx) => idx !== q.ans) || "∅";
-    const rightOption = q.options[q.ans];
 
-    document.getElementById("diver-gate-label").textContent = `PORTE À ${Math.floor(diverState.depth + 45)}m • COURS ${q.course}`;
-    document.getElementById("diver-gate-question").textContent = q.q;
+    document.getElementById("diver-gate-label").textContent = `ÉCLUSE À ${Math.floor(diverState.depth + 25)}m • COURS ${micro.course}`;
+    document.getElementById("diver-gate-question").textContent = micro.q;
 
     diverState.gate = {
-        y: diverCanvas.height + 60,
-        leftText: diverState.correctSide === 0 ? rightOption : wrongOption,
-        rightText: diverState.correctSide === 1 ? rightOption : wrongOption,
-        passed: false
+        y: diverCanvas.height + 55,
+        leftText: diverState.correctSide === 0 ? micro.left : micro.right,
+        rightText: diverState.correctSide === 1 ? micro.left : micro.right,
+        passed: false,
+        choiceLockedIn: false
     };
 }
 
@@ -2460,7 +2874,6 @@ function triggerDiverEmergencyO2() {
         diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 45);
         showToast("🤿 +45% Oxygène rechargé !", "fa-lungs");
     });
-    // Resume when modal closes
     const checkResume = setInterval(() => {
         if (document.getElementById("quiz-modal").classList.contains("hidden")) {
             clearInterval(checkResume);
@@ -2560,23 +2973,39 @@ function diverGameLoop() {
     const w = diverCanvas.width;
     const h = diverCanvas.height;
 
-    // Update depth and O2
-    diverState.depth += 0.22;
-    diverState.o2 -= 0.095;
+    // Check if gate is in the Reading Brake Zone (just below the diver)
+    const g = diverState.gate;
+    const inReadingZone = g && !g.passed && !g.choiceLockedIn && (g.y <= diverState.y + 115 && g.y >= diverState.y + 55);
+    const isStoppedForReading = inReadingZone && diverState.stopAtGateMode;
+
+    const brakeBadge = document.getElementById("diver-brake-indicator");
+    if (isStoppedForReading) {
+        brakeBadge.innerHTML = `<i class="fa-solid fa-circle-pause text-amber-300"></i> En attente : Touche Porte A ou B !`;
+    } else if (inReadingZone) {
+        brakeBadge.innerHTML = `<i class="fa-solid fa-feather text-cyan-300"></i> Ralenti de lecture actif`;
+    } else {
+        brakeBadge.innerHTML = `<i class="fa-solid fa-water text-emerald-300"></i> Descente calme`;
+    }
+
+    // Update depth and O2 (paused while reading in Stop-Porte mode!)
+    if (!isStoppedForReading) {
+        diverState.depth += 0.12;
+        diverState.o2 -= 0.022;
+    }
 
     // Horizontal movement
-    diverState.vx = diverState.vx * 0.82 + diverState.dir * 1.35;
+    diverState.vx = diverState.vx * 0.82 + diverState.dir * 1.45;
     diverState.x = Math.max(28, Math.min(w - 28, diverState.x + diverState.vx));
 
     // Spawn O2 bubbles & Gold coins
-    if (Math.random() < 0.04) {
+    if (!isStoppedForReading && Math.random() < 0.035) {
         diverState.bubbles.push({
             x: 25 + Math.random() * (w - 50),
             y: h + 20,
             r: 9 + Math.random() * 5
         });
     }
-    if (Math.random() < 0.03) {
+    if (!isStoppedForReading && Math.random() < 0.025) {
         diverState.coins.push({
             x: 25 + Math.random() * (w - 50),
             y: h + 20,
@@ -2595,7 +3024,7 @@ function diverGameLoop() {
     // Draw rising plankton particles
     diverCtx.fillStyle = "rgba(103, 232, 249, 0.25)";
     diverState.seaParticles.forEach(p => {
-        p.y -= p.speed;
+        p.y -= isStoppedForReading ? p.speed * 0.2 : p.speed * 0.65;
         if (p.y < 0) {
             p.y = h;
             p.x = Math.random() * w;
@@ -2609,14 +3038,13 @@ function diverGameLoop() {
     const hasMagnet = state.ownedItems.includes("suit_neon");
     for (let i = diverState.bubbles.length - 1; i >= 0; i--) {
         const b = diverState.bubbles[i];
-        b.y -= 2.3;
+        b.y -= isStoppedForReading ? 0.3 : 1.25;
         if (hasMagnet) {
             b.x += (diverState.x - b.x) * 0.03;
         }
-        // Collision with Diver
         if (Math.hypot(b.x - diverState.x, b.y - diverState.y) < b.r + 22) {
             playSound("bubble");
-            diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 12);
+            diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 14);
             diverState.bubbles.splice(i, 1);
             continue;
         }
@@ -2640,7 +3068,7 @@ function diverGameLoop() {
     // Update & Draw Abyssal Coins
     for (let i = diverState.coins.length - 1; i >= 0; i--) {
         const c = diverState.coins[i];
-        c.y -= 2.5;
+        c.y -= isStoppedForReading ? 0.3 : 1.35;
         if (hasMagnet) c.x += (diverState.x - c.x) * 0.035;
         if (Math.hypot(c.x - diverState.x, c.y - diverState.y) < c.r + 22) {
             playSound("pop");
@@ -2663,58 +3091,69 @@ function diverGameLoop() {
 
     // Update & Draw Math Airlock Gates
     if (diverState.gate) {
-        const g = diverState.gate;
-        g.y -= 1.65;
+        let gateSpeed = 0.72;
+        if (g.choiceLockedIn) {
+            gateSpeed = 3.2;
+        } else if (isStoppedForReading) {
+            gateSpeed = 0;
+        } else if (inReadingZone) {
+            gateSpeed = 0.25;
+        }
+        g.y -= gateSpeed;
 
         const halfW = w / 2;
         // Left Gate Box (Porte A)
-        diverCtx.fillStyle = "rgba(6, 182, 212, 0.22)";
+        diverCtx.fillStyle = (diverState.x < halfW) ? "rgba(6, 182, 212, 0.38)" : "rgba(6, 182, 212, 0.18)";
         diverCtx.strokeStyle = "#22d3ee";
-        diverCtx.lineWidth = 2;
+        diverCtx.lineWidth = (diverState.x < halfW) ? 3 : 2;
         diverCtx.beginPath();
-        diverCtx.roundRect(8, g.y - 26, halfW - 12, 52, 12);
+        diverCtx.roundRect(8, g.y - 32, halfW - 12, 64, 14);
         diverCtx.fill();
         diverCtx.stroke();
 
         // Right Gate Box (Porte B)
-        diverCtx.fillStyle = "rgba(245, 158, 11, 0.22)";
+        diverCtx.fillStyle = (diverState.x >= halfW) ? "rgba(245, 158, 11, 0.38)" : "rgba(245, 158, 11, 0.18)";
         diverCtx.strokeStyle = "#fbbf24";
+        diverCtx.lineWidth = (diverState.x >= halfW) ? 3 : 2;
         diverCtx.beginPath();
-        diverCtx.roundRect(halfW + 4, g.y - 26, halfW - 12, 52, 12);
+        diverCtx.roundRect(halfW + 4, g.y - 32, halfW - 12, 64, 14);
         diverCtx.fill();
         diverCtx.stroke();
 
-        // Gate Text Wrapping
-        diverCtx.fillStyle = "#ffffff";
-        diverCtx.font = "bold 11px 'JetBrains Mono', monospace";
+        // Gate Headers ("PORTE A" / "PORTE B")
+        diverCtx.font = "bold 9px 'Fredoka', sans-serif";
+        diverCtx.fillStyle = "#67e8f9";
         diverCtx.textAlign = "center";
-        wrapCanvasText(diverCtx, g.leftText, halfW / 2 + 2, g.y - 4, halfW - 22, 13);
-        wrapCanvasText(diverCtx, g.rightText, halfW + halfW / 2 - 2, g.y - 4, halfW - 22, 13);
+        diverCtx.fillText("◀ PORTE A (Touche)", halfW / 2 + 2, g.y - 17);
+        diverCtx.fillStyle = "#fde047";
+        diverCtx.fillText("PORTE B (Touche) ▶", halfW + halfW / 2 - 2, g.y - 17);
+
+        // Gate Short Answer Text
+        diverCtx.fillStyle = "#ffffff";
+        diverCtx.font = "bold 12px 'JetBrains Mono', monospace";
+        wrapCanvasText(diverCtx, g.leftText, halfW / 2 + 2, g.y + 4, halfW - 22, 14);
+        wrapCanvasText(diverCtx, g.rightText, halfW + halfW / 2 - 2, g.y + 4, halfW - 22, 14);
 
         // Check Gate Passage
-        if (!g.passed && g.y <= diverState.y + 15 && g.y >= diverState.y - 15) {
+        if (!g.passed && g.y <= diverState.y + 15 && g.y >= diverState.y - 20) {
             g.passed = true;
             const chosenSide = diverState.x < halfW ? 0 : 1;
             const q = diverState.currentQ;
-            if (!state.mastery[q.id]) state.mastery[q.id] = { correct: 0, wrong: 0, streak: 0 };
 
             if (chosenSide === diverState.correctSide) {
                 playSound("win");
-                diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 32);
-                state.mastery[q.id].correct += 1;
-                state.mastery[q.id].streak += 1;
+                diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 30);
+                diverState.depth += 15;
                 addRewards(20, 25);
                 updateMissionProgress("m_quiz", 1);
                 spawnParticles(diverState.x, diverState.y + 120, "#10b981", 25);
-                showToast("✅ Porte Exacte ! +32% Oxygène & +20 Or !", "fa-check");
+                showToast(`✅ Exact : ${q.left} ! +30% O₂`, "fa-check");
             } else {
                 playSound("error");
                 triggerScreenShake();
-                const penalty = state.ownedItems.includes("upgrade_shield") ? 14 : 26;
+                const penalty = state.ownedItems.includes("upgrade_shield") ? 10 : 18;
                 diverState.o2 = Math.max(0, diverState.o2 - penalty);
-                state.mastery[q.id].wrong += 1;
-                state.mastery[q.id].streak = 0;
-                showToast(`❌ Fuite O₂ ! Réponse : ${q.options[q.ans]}`, "fa-triangle-exclamation");
+                showToast(`💡 Rappel : ${q.q} → ${q.left}`, "fa-lightbulb");
             }
         }
 
@@ -2723,20 +3162,22 @@ function diverGameLoop() {
         }
     }
 
-    // Draw Copper Diver
+    // Draw Copper Scaphandre Diver
     drawCopperDiver(diverCtx, diverState.x, diverState.y, diverState.vx);
 
-    // Update Diver HUD
+    // Update Top Diver HUD
     const depthInt = Math.floor(diverState.depth);
     document.getElementById("diver-depth").textContent = `${depthInt}m`;
-    const o2Pct = Math.max(0, Math.round((diverState.o2 / diverState.maxO2) * 100));
-    document.getElementById("diver-o2-text").textContent = `${o2Pct}%`;
-    document.getElementById("diver-o2-bar").style.width = `${o2Pct}%`;
-
     if (depthInt > state.diverBest) {
         state.diverBest = depthInt;
     }
-    updateMissionProgress("m_diver", 0.22);
+    updateMissionProgress("m_diver", 0.15);
+
+    const o2Pct = Math.max(0, Math.round((diverState.o2 / diverState.maxO2) * 100));
+    document.getElementById("diver-o2-text").textContent = `${o2Pct}%`;
+    const o2Bar = document.getElementById("diver-o2-bar");
+    o2Bar.style.width = `${o2Pct}%`;
+    o2Bar.className = `h-full rounded-full transition-all duration-150 ${o2Pct < 25 ? 'bg-rose-500 animate-pulse' : 'bg-gradient-to-r from-cyan-400 to-emerald-400'}`;
 
     // Check Oxygen Depletion
     if (diverState.o2 <= 0) {
@@ -2744,7 +3185,7 @@ function diverGameLoop() {
         playSound("error");
         saveState();
         document.getElementById("diver-overlay").classList.remove("hidden");
-        showToast(`🤿 Remontée d'urgence à ${depthInt}m !`, "fa-anchor");
+        showToast(`🤿 Fin d'Oxygène à ${depthInt}m !`, "fa-anchor");
         return;
     }
 
@@ -2778,49 +3219,67 @@ function drawDiverIdlePreview() {
     drawCopperDiver(diverCtx, diverCanvas.width / 2, 110, 0);
 }
 
-// Allow direct touch/drag on the Diver Canvas
+// Allow tapping left/right half of the Diver Canvas or dragging with 1 thumb to choose gate
+diverCanvas.addEventListener("pointerdown", (e) => {
+    if (!diverState.running) return;
+    const rect = diverCanvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    if (diverState.gate && Math.abs((e.clientY - rect.top) - diverState.gate.y) < 48) {
+        chooseDiverGateSide(clickX < rect.width / 2 ? 0 : 1);
+    } else {
+        diverState.x = clickX;
+    }
+});
+
 diverCanvas.addEventListener("pointermove", (e) => {
     if (!diverState.running) return;
     const rect = diverCanvas.getBoundingClientRect();
     const targetX = e.clientX - rect.left;
-    diverState.x += (targetX - diverState.x) * 0.25;
+    diverState.x += (targetX - diverState.x) * 0.35;
 });
 
 /**
  * ============================================================================
- * 9. GRIMOIRE INTERACTIF (COURS 1 À 6), TRIANGLE DE PASCAL & BOUTIQUE
+ * 9. CODEX THÉORIQUE INTERACTIF, TRIANGLE DE PASCAL & BOUTIQUE
  * ============================================================================
  */
-let activeCodexFilter = 0; // 0 = All
+let codexFilter = 0;
 
 function renderCodex() {
     const filterBar = document.getElementById("codex-filter-bar");
-    filterBar.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(c => `
-        <button onclick="setCodexFilter(${c})" class="btn-juicy px-3 py-1 rounded-full text-xs font-bold shrink-0 ${activeCodexFilter === c ? 'bg-cyan-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">
-            ${c === 0 ? 'Tous (1-6)' : `Cours ${c}`}
+    const buttons = [
+        { id: 0, label: "Tous (1-6)" },
+        { id: 1, label: "Cours 1" },
+        { id: 2, label: "Cours 2" },
+        { id: 3, label: "Cours 3" },
+        { id: 4, label: "Cours 4" },
+        { id: 5, label: "Cours 5" },
+        { id: 6, label: "Cours 6" }
+    ];
+    filterBar.innerHTML = buttons.map(b => `
+        <button onclick="setCodexFilter(${b.id})" class="btn-juicy px-3 py-1 rounded-xl text-xs font-bold shrink-0 ${codexFilter === b.id ? 'bg-cyan-400 text-slate-950' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+            ${b.label}
         </button>
     `).join("");
 
-    const sheets = activeCodexFilter === 0
-        ? CODEX_SHEETS
-        : CODEX_SHEETS.filter(s => s.course === activeCodexFilter);
-
     const container = document.getElementById("codex-cards-container");
+    const sheets = codexFilter === 0 ? CODEX_SHEETS : CODEX_SHEETS.filter(s => s.course === codexFilter);
+
     container.innerHTML = sheets.map(s => `
         <div class="rounded-3xl p-3.5 bg-slate-900/95 border border-slate-800 space-y-2.5">
             <div class="flex items-center justify-between">
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">${s.badge}</span>
-                <button onclick="selectCourseFromRoadmap(${s.course}, 1)" class="btn-juicy text-xs font-bold text-amber-300 hover:underline">
-                    Tester ce cours <i class="fa-solid fa-bolt"></i>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">${s.badge}</span>
+                <button onclick="selectCourseFromRoadmap(${s.course}, ${s.course})" class="btn-juicy text-xs font-bold text-amber-300 hover:underline">
+                    Tester ce cours <i class="fa-solid fa-play ml-1"></i>
                 </button>
             </div>
-            <h3 class="text-sm font-black text-white">${s.title}</h3>
+            <h3 class="text-sm font-extrabold text-white">${s.title}</h3>
             <div class="space-y-2">
-                ${s.items.map(it => `
+                ${s.items.map(item => `
                     <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800/90">
-                        <div class="text-xs font-extrabold text-cyan-300">${it.term}</div>
-                        <pre class="text-xs font-bold text-amber-300 math-font whitespace-pre-wrap mt-1 bg-slate-900/80 p-2 rounded-xl border border-slate-800">${it.formula}</pre>
-                        <div class="text-[11px] text-slate-300 mt-1.5 leading-relaxed">${it.explain}</div>
+                        <div class="text-xs font-bold text-cyan-300">${item.term}</div>
+                        <pre class="math-font text-xs font-bold text-amber-300 bg-slate-900/90 p-2 rounded-xl my-1 overflow-x-auto whitespace-pre-wrap">${item.formula}</pre>
+                        <div class="text-[11px] text-slate-300 leading-relaxed">${item.explain}</div>
                     </div>
                 `).join("")}
             </div>
@@ -2828,32 +3287,31 @@ function renderCodex() {
     `).join("");
 }
 
-function setCodexFilter(c) {
+function setCodexFilter(id) {
     playSound("pop");
-    activeCodexFilter = c;
+    codexFilter = id;
     renderCodex();
 }
 
-function factorial(n) {
-    let res = 1;
-    for (let i = 2; i <= n; i++) res *= i;
-    return res;
-}
-
 function comb(n, k) {
-    return Math.round(factorial(n) / (factorial(k) * factorial(n - k)));
+    if (k < 0 || k > n) return 0;
+    let res = 1;
+    for (let i = 1; i <= k; i++) {
+        res = res * (n - i + 1) / i;
+    }
+    return Math.round(res);
 }
 
 function renderPascalTriangle() {
     const container = document.getElementById("pascal-interactive");
     let html = "";
-    for (let n = 0; n <= 6; n++) {
+    for (let n = 0; n <= 5; n++) {
         let rowHtml = `<div class="flex items-center gap-1">`;
         rowHtml += `<span class="text-[9px] text-slate-500 math-font w-7 text-right mr-1">n=${n}</span>`;
         for (let k = 0; k <= n; k++) {
             const val = comb(n, k);
             rowHtml += `
-                <button onclick="inspectPascalCell(${n}, ${k}, ${val})" class="btn-juicy w-7 h-7 rounded-lg bg-slate-800 hover:bg-cyan-500/30 border border-slate-700 text-[11px] font-bold text-amber-300 math-font flex items-center justify-center">
+                <button onclick="inspectPascalCell(${n}, ${k}, ${val})" class="btn-juicy w-8 h-7 rounded-lg bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 border border-slate-700 text-xs font-bold math-font text-white flex items-center justify-center">
                     ${val}
                 </button>
             `;
@@ -2977,25 +3435,25 @@ function importSaveCode() {
 
 function updateDailyCountdown() {
     const now = new Date();
-    const midnight = new Date();
-    midnight.setHours(24, 0, 0, 0);
-    const diff = Math.max(0, Math.floor((midnight - now) / 1000));
-    const hrs = String(Math.floor(diff / 3600)).padStart(2, "0");
-    const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, "0");
-    const secs = String(diff % 60).padStart(2, "0");
+    const tomorrow = new Date(now);
+    tomorrow.setHours(24, 0, 0, 0);
+    const diff = Math.max(0, tomorrow - now);
+    const hrs = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, "0");
+    const mins = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0");
+    const secs = String(Math.floor((diff / 1000) % 60)).padStart(2, "0");
     const el = document.getElementById("mission-timer");
     if (el) el.textContent = `${hrs}:${mins}:${secs}`;
 }
 
 window.onload = function () {
     resizeFxCanvas();
-    requestAnimationFrame(updateParticles);
+    updateParticles();
     loadState(() => {
         updateAllUI();
         initBlastGame();
-        setInterval(updateDailyCountdown, 1000);
-        updateDailyCountdown();
     });
+    updateDailyCountdown();
+    setInterval(updateDailyCountdown, 1000);
 };
 </script>
 </body>
