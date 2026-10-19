@@ -1,0 +1,3002 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Algebra Blast & Abyss — Maîtrise tes 6 Cours</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #06b6d4;
+            --gold: #fbbf24;
+            --copper: #d97706;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100dvh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .math-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Mobile Portrait Shell */
+        #app-shell {
+            width: 100%;
+            max-width: 450px;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: linear-gradient(180deg, #0b1120 0%, #060b16 100%);
+            box-shadow: 0 0 50px rgba(6, 182, 212, 0.18);
+            overflow: hidden;
+        }
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.35);
+            border-radius: 9999px;
+        }
+        /* Juicy Game Buttons */
+        .btn-juicy {
+            transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
+            position: relative;
+        }
+        .btn-juicy:active {
+            transform: translateY(3px) scale(0.96);
+        }
+        /* Animations */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.35); }
+            50% { box-shadow: 0 0 28px rgba(6, 182, 212, 0.75); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.6); opacity: 0; }
+            70% { transform: scale(1.06); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shakeScreen {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-6px, 3px); }
+            40% { transform: translate(6px, -3px); }
+            60% { transform: translate(-4px, -2px); }
+            80% { transform: translate(4px, 2px); }
+        }
+        .animate-float { animation: floatSlow 3s ease-in-out infinite; }
+        .animate-glow { animation: pulseGlow 2.2s infinite; }
+        .animate-pop { animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .shake-fx { animation: shakeScreen 0.32s ease-in-out; }
+
+        /* Block Blast Grid Cells */
+        .blast-cell {
+            aspect-ratio: 1 / 1;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+            position: relative;
+        }
+        .blast-cell.filled {
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            box-shadow: inset 0 3px 4px rgba(255,255,255,0.35), 0 3px 8px rgba(0,0,0,0.4);
+        }
+        .blast-cell.preview-ok {
+            background: rgba(56, 189, 248, 0.45) !important;
+            border: 2px dashed #38bdf8 !important;
+            transform: scale(0.95);
+        }
+        .blast-cell.clearing {
+            animation: popIn 0.35s reverse forwards;
+            background: #fff !important;
+            box-shadow: 0 0 20px #38bdf8 !important;
+        }
+    </style>
+</head>
+<body>
+<div id="app-shell">
+    <!-- Particle FX Overlay Canvas -->
+    <canvas id="fx-canvas" class="pointer-events-none absolute inset-0 z-50 w-full h-full"></canvas>
+
+    <!-- TOP STATUS BAR (HUD) -->
+    <header class="px-3 pt-2.5 pb-2 bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-md z-20 flex items-center justify-between gap-2 shrink-0">
+        <!-- Level & XP Pill -->
+        <button onclick="openProfileModal()" class="btn-juicy flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 rounded-2xl px-2.5 py-1.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-bold text-slate-950 shadow-md text-sm" id="hud-level">
+                1
+            </div>
+            <div class="text-left">
+                <div class="flex items-center gap-1">
+                    <span class="text-[11px] font-bold text-cyan-300 uppercase tracking-wider" id="hud-rank">Novice</span>
+                </div>
+                <div class="w-16 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700/60">
+                    <div id="hud-xp-bar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-300" style="width: 20%"></div>
+                </div>
+            </div>
+        </button>
+
+        <!-- Streak Pill -->
+        <button onclick="showStreakToast()" class="btn-juicy flex items-center gap-1.5 bg-orange-950/60 border border-orange-500/40 rounded-2xl px-2.5 py-1.5">
+            <i class="fa-solid fa-fire-flame-curved text-orange-400 text-base animate-bounce"></i>
+            <div class="text-left">
+                <div class="text-xs font-extrabold text-orange-300 leading-none" id="hud-streak">1j</div>
+                <div class="text-[9px] text-orange-400/80 leading-none">Streak</div>
+            </div>
+        </button>
+
+        <!-- Coins Pill -->
+        <button onclick="switchTab('shop')" class="btn-juicy flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/40 rounded-2xl px-2.5 py-1.5">
+            <i class="fa-solid fa-coins text-amber-400 text-sm"></i>
+            <span class="text-xs font-extrabold text-amber-300 math-font" id="hud-coins">150</span>
+        </button>
+
+        <!-- Audio / Save Settings Button -->
+        <button onclick="openSaveModal()" class="btn-juicy w-9 h-9 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-slate-300 hover:text-white">
+            <i class="fa-solid fa-sliders text-sm"></i>
+        </button>
+    </header>
+
+    <!-- MAIN VIEWPORT AREA -->
+    <main id="main-content" class="flex-1 overflow-y-auto custom-scroll relative px-3 py-3">
+        
+        <!-- ==================== TAB 1: DASHBOARD & 10-DAY CAMPAIGN ==================== -->
+        <section id="tab-home" class="space-y-3.5 pb-6">
+            <!-- Hero Mastery Banner -->
+            <div class="relative rounded-3xl p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-cyan-950 border border-cyan-500/30 shadow-xl overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-cyan-500/10 blur-xl pointer-events-none"></div>
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                            <i class="fa-solid fa-graduation-cap"></i> OBJECTIF 1.5 SEMAINE (10 JOURS)
+                        </span>
+                        <h1 class="text-lg font-extrabold text-white mt-1 leading-tight">Algèbre Linéaire : Cours 1 à 6</h1>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300 math-font" id="home-mastery-pct">0%</div>
+                        <div class="text-[10px] text-slate-400">Maîtrise Globale</div>
+                    </div>
+                </div>
+
+                <!-- Overall Progress Bar -->
+                <div class="w-full h-2.5 bg-slate-950/90 rounded-full overflow-hidden border border-slate-700/70 mb-3">
+                    <div id="home-mastery-bar" class="h-full bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 transition-all duration-500" style="width: 5%"></div>
+                </div>
+
+                <!-- Active Chapter Selector -->
+                <div class="flex items-center justify-between bg-slate-950/60 rounded-2xl p-2 border border-slate-800">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-xs shrink-0" id="active-day-badge">
+                            J1
+                        </div>
+                        <div class="truncate">
+                            <div class="text-[10px] text-slate-400 uppercase font-semibold">Cible d'entraînement active</div>
+                            <div class="text-xs font-bold text-white truncate" id="active-day-title">Tous les Cours (Intelligent)</div>
+                        </div>
+                    </div>
+                    <button onclick="cycleTargetCourse()" class="btn-juicy px-2.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-bold shrink-0">
+                        Changer <i class="fa-solid fa-repeat ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Launch Arcade Cards -->
+            <div class="grid grid-cols-2 gap-2.5">
+                <!-- Block Blast Card -->
+                <button onclick="switchTab('blast')" class="btn-juicy text-left rounded-3xl p-3.5 bg-gradient-to-br from-fuchsia-950/90 via-purple-950/80 to-slate-900 border border-fuchsia-500/40 shadow-lg relative overflow-hidden group">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-fuchsia-400 to-purple-600 flex items-center justify-center text-white text-lg shadow-md mb-2">
+                        <i class="fa-solid fa-cubes-stacked"></i>
+                    </div>
+                    <div class="font-extrabold text-sm text-white leading-tight">Block Blast</div>
+                    <div class="text-[11px] text-fuchsia-300/90 mt-0.5">Puzzle 8x8 & Formules</div>
+                    <div class="mt-2 inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-black/30 px-2 py-0.5 rounded-full">
+                        <i class="fa-solid fa-trophy"></i> Record: <span id="home-blast-best" class="math-font">0</span>
+                    </div>
+                </button>
+
+                <!-- Copper Diver Card -->
+                <button onclick="switchTab('diver')" class="btn-juicy text-left rounded-3xl p-3.5 bg-gradient-to-br from-amber-950/90 via-cyan-950/80 to-slate-900 border border-amber-500/40 shadow-lg relative overflow-hidden group">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 text-lg shadow-md mb-2">
+                        <i class="fa-solid fa-helmet-safety"></i>
+                    </div>
+                    <div class="font-extrabold text-sm text-white leading-tight">Abyss Diver</div>
+                    <div class="text-[11px] text-amber-300/90 mt-0.5">Scaphandre & Oxygène</div>
+                    <div class="mt-2 inline-flex items-center gap-1 text-[10px] font-bold text-cyan-300 bg-black/30 px-2 py-0.5 rounded-full">
+                        <i class="fa-solid fa-water"></i> Max: <span id="home-diver-best" class="math-font">0m</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Blitz Chrono & Forge Banner -->
+            <button onclick="startBlitzMode()" class="btn-juicy w-full rounded-3xl p-3.5 bg-gradient-to-r from-emerald-950 via-teal-900/80 to-slate-900 border border-emerald-400/40 flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 text-xl shadow-md">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-extrabold text-sm text-white">Forge & Blitz 60s</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/30">x2 PIÈCES</span>
+                        </div>
+                        <div class="text-xs text-slate-300">Construis les formules & trie Vrai/Faux contre la montre !</div>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-emerald-400 mr-1"></i>
+            </button>
+
+            <!-- Daily Missions with Countdown -->
+            <div class="rounded-3xl p-3.5 bg-slate-900/90 border border-slate-800">
+                <div class="flex items-center justify-between mb-2.5">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-crosshairs text-cyan-400 text-sm"></i>
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-200">Missions Quotidiennes</h2>
+                    </div>
+                    <div class="flex items-center gap-1 text-[11px] text-amber-300 math-font bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-500/30">
+                        <i class="fa-regular fa-clock"></i> <span id="mission-timer">14:22:10</span>
+                    </div>
+                </div>
+                <div id="daily-missions-list" class="space-y-2">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- 10-Day Roadmap (1.5 Weeks Course Mastery) -->
+            <div class="rounded-3xl p-3.5 bg-slate-900/90 border border-slate-800">
+                <div class="flex items-center justify-between mb-2.5">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-map-location-dot text-purple-400 text-sm"></i>
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-200">Plan de Maîtrise (10 Jours)</h2>
+                    </div>
+                    <span class="text-[10px] text-slate-400">Clique un jour pour cibler</span>
+                </div>
+                <div id="roadmap-list" class="space-y-2">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: BLOCK BLAST LOGIQUE ==================== -->
+        <section id="tab-blast" class="hidden h-full flex flex-col justify-between pb-2">
+            <!-- Top Mini Bar -->
+            <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2 mb-2 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Score</div>
+                        <div class="text-base font-black text-white math-font leading-tight" id="blast-score">0</div>
+                    </div>
+                    <div class="h-6 w-px bg-slate-800"></div>
+                    <div>
+                        <div class="text-[10px] text-amber-400/80 uppercase">Record</div>
+                        <div class="text-sm font-bold text-amber-300 math-font leading-tight" id="blast-best">0</div>
+                    </div>
+                </div>
+
+                <!-- Brain Charge / Bonus Power Button -->
+                <div class="flex items-center gap-1.5">
+                    <button onclick="triggerBlastMathBoost()" class="btn-juicy px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-cyan-600 text-white text-xs font-bold shadow-md flex items-center gap-1.5 border border-white/20">
+                        <i class="fa-solid fa-brain"></i>
+                        <span>Défi Joker</span>
+                    </button>
+                    <button onclick="resetBlastGame()" title="Nouvelle Grille" class="btn-juicy w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formula Target Strip -->
+            <div class="bg-indigo-950/70 border border-indigo-500/30 rounded-2xl px-3 py-1.5 mb-2 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2 truncate">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/30 text-indigo-200 shrink-0">THÉORÈME</span>
+                    <span class="text-xs text-cyan-200 math-font truncate" id="blast-theorem-hint">∀y∈F, ∃x∈E, y=f(x) ⇔ Surjectif</span>
+                </div>
+                <span class="text-[10px] font-bold text-amber-300 shrink-0 ml-2" id="blast-combo-badge">Combo x1</span>
+            </div>
+
+            <!-- 8x8 Grid Container -->
+            <div class="flex-1 flex items-center justify-center my-auto">
+                <div id="blast-grid" class="w-full max-w-[330px] aspect-square grid grid-cols-8 gap-1 p-2 rounded-2xl bg-slate-900/95 border-2 border-slate-800 shadow-2xl relative">
+                    <!-- 64 Cells injected by JS -->
+                </div>
+            </div>
+
+            <!-- Piece Dock (3 Tap-to-Select or Drag Pieces) -->
+            <div class="mt-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shrink-0">
+                <div class="text-center text-[10px] text-slate-400 mb-1.5" id="blast-instruction">
+                    Sélectionne une forme en bas puis touche la grille pour la poser (les blocs <i class="fa-solid fa-Graduation-Cap text-amber-300"></i> lancent un défi bonus !)
+                </div>
+                <div id="blast-dock" class="grid grid-cols-3 gap-2 h-20 items-center justify-items-center">
+                    <!-- 3 pieces rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: ABYSS DIVER (COPPER SCAPHANDRE) ==================== -->
+        <section id="tab-diver" class="hidden h-full flex flex-col justify-between pb-2">
+            <!-- Diver Top HUD -->
+            <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-2.5 mb-2 flex items-center justify-between gap-2 shrink-0">
+                <!-- Depth -->
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                        <i class="fa-solid fa-anchor"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase leading-none">Profondeur</div>
+                        <div class="text-base font-black text-cyan-300 math-font leading-tight" id="diver-depth">0m</div>
+                    </div>
+                </div>
+
+                <!-- Oxygen Tank Bar -->
+                <div class="flex-1 max-w-[160px]">
+                    <div class="flex justify-between text-[10px] font-bold mb-0.5">
+                        <span class="text-cyan-300"><i class="fa-solid fa-lungs mr-1"></i>OXYGÈNE (O₂)</span>
+                        <span id="diver-o2-text" class="math-font text-white">100%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
+                        <div id="diver-o2-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-150" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <!-- Emergency O2 Math Valve -->
+                <button onclick="triggerDiverEmergencyO2()" class="btn-juicy px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-bold shrink-0">
+                    +O₂ <i class="fa-solid fa-bolt"></i>
+                </button>
+            </div>
+
+            <!-- Active Abyss Gate Question Prompt -->
+            <div id="diver-prompt-box" class="bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 border border-cyan-400/40 rounded-2xl px-3 py-2 mb-2 text-center shadow-lg shrink-0">
+                <div class="text-[10px] uppercase tracking-wider text-amber-300 font-bold" id="diver-gate-label">PROCHAINE ÉCLUSE ABYSSALE</div>
+                <div class="text-xs sm:text-sm font-bold text-white math-font mt-0.5" id="diver-gate-question">Appuie sur PLONGER pour descendre dans l'abîme !</div>
+            </div>
+
+            <!-- HTML5 Canvas for Copper Diver -->
+            <div class="flex-1 relative rounded-3xl overflow-hidden border-2 border-amber-500/30 shadow-2xl bg-slate-950">
+                <canvas id="diver-canvas" class="w-full h-full block"></canvas>
+
+                <!-- Diver Start / Pause Overlay -->
+                <div id="diver-overlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-5 text-center z-10">
+                    <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-700 border-4 border-amber-300 flex items-center justify-center shadow-2xl mb-3 animate-float">
+                        <i class="fa-solid fa-person-drowning text-3xl text-slate-950"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-white">Scaphandrier de l'Abîme</h3>
+                    <p class="text-xs text-slate-300 mt-1 max-w-xs">
+                        Plonge toujours plus profond avec ton scaphandre en cuivre ! Franchis la <strong>Porte Mathématique Exacte</strong> pour recharger ton Oxygène ($O_2$) et récolter les trésors.
+                    </p>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="startDiverGame()" class="btn-juicy px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/30">
+                            <i class="fa-solid fa-play mr-1"></i> PLONGER MAINTENANT
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Touch Left / Right Controls for Mobile Thumb Play -->
+            <div class="grid grid-cols-2 gap-2.5 mt-2 shrink-0">
+                <button id="btn-diver-left" onpointerdown="setDiverDir(-1)" onpointerup="setDiverDir(0)" onpointerleave="setDiverDir(0)" class="btn-juicy py-3 rounded-2xl bg-slate-900 border border-slate-700 active:bg-cyan-950 active:border-cyan-400 text-cyan-300 font-extrabold text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> GAUCHE (Porte A)
+                </button>
+                <button id="btn-diver-right" onpointerdown="setDiverDir(1)" onpointerup="setDiverDir(0)" onpointerleave="setDiverDir(0)" class="btn-juicy py-3 rounded-2xl bg-slate-900 border border-slate-700 active:bg-amber-950 active:border-amber-400 text-amber-300 font-extrabold text-sm flex items-center justify-center gap-2">
+                    DROITE (Porte B) <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: CODEX / GRIMOIRE DES 6 COURS ==================== -->
+        <section id="tab-codex" class="hidden space-y-3 pb-6">
+            <div class="rounded-3xl p-3.5 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-500/30">
+                <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book-journal-whills text-cyan-400"></i>
+                    Grimoire Interactif (Cours 1 à 6)
+                </h2>
+                <p class="text-xs text-slate-300 mt-0.5">
+                    Toutes les définitions exactes, pièges à éviter, démonstrations et intuitions visuelles de tes polycopiés.
+                </p>
+                <!-- Filter Pills -->
+                <div id="codex-filter-bar" class="flex gap-1.5 overflow-x-auto pb-1 mt-2.5">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+            <!-- Interactive Pascal Triangle Widget -->
+            <div class="rounded-3xl p-3.5 bg-slate-900/90 border border-slate-800">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-extrabold text-amber-300 uppercase"><i class="fa-solid fa-pyramid mr-1"></i>Simulateur Triangle de Pascal (Cours 3)</span>
+                    <span class="text-[11px] text-slate-400 math-font">C(n,k) = C(n-1,k) + C(n-1,k-1)</span>
+                </div>
+                <div id="pascal-interactive" class="flex flex-col items-center gap-1 py-1 overflow-x-auto">
+                    <!-- Rendered by JS -->
+                </div>
+                <div id="pascal-detail" class="text-center text-xs text-cyan-300 math-font mt-2 bg-slate-950/70 py-1.5 px-2 rounded-xl border border-slate-800">
+                    Touche une case du triangle pour voir le calcul factoriel et le binôme !
+                </div>
+            </div>
+
+            <!-- Course Cards Accordion -->
+            <div id="codex-cards-container" class="space-y-2.5">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: SHOP & UPGRADES ==================== -->
+        <section id="tab-shop" class="hidden space-y-3.5 pb-6">
+            <div class="rounded-3xl p-4 bg-gradient-to-br from-amber-950/80 via-slate-900 to-slate-950 border border-amber-500/40 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Atelier Abyssal</span>
+                    <h2 class="text-lg font-black text-white">Boutique & Équipement</h2>
+                    <p class="text-xs text-slate-300">Améliore ton scaphandre et personnalise tes blocs !</p>
+                </div>
+                <div class="bg-slate-950/90 px-3.5 py-2 rounded-2xl border border-amber-500/40 text-center">
+                    <div class="text-[10px] text-slate-400">Trésor</div>
+                    <div class="text-base font-black text-amber-400 math-font flex items-center gap-1">
+                        <i class="fa-solid fa-coins"></i> <span id="shop-coins-display">150</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="shop-items-grid" class="space-y-2.5">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bg-slate-900/95 border-t border-slate-800 px-2 py-1.5 grid grid-cols-5 gap-1 z-20 shrink-0">
+        <button onclick="switchTab('home')" id="nav-home" class="btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-cyan-400 bg-cyan-500/10">
+            <i class="fa-solid fa-compass text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">QG / Plan</span>
+        </button>
+        <button onclick="switchTab('blast')" id="nav-blast" class="btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-slate-400">
+            <i class="fa-solid fa-cubes-stacked text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Block Blast</span>
+        </button>
+        <button onclick="switchTab('diver')" id="nav-diver" class="btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-slate-400">
+            <i class="fa-solid fa-helmet-safety text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Scaphandre</span>
+        </button>
+        <button onclick="switchTab('codex')" id="nav-codex" class="btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-slate-400">
+            <i class="fa-solid fa-book-open text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Théorie</span>
+        </button>
+        <button onclick="switchTab('shop')" id="nav-shop" class="btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-slate-400">
+            <i class="fa-solid fa-store text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Boutique</span>
+        </button>
+    </nav>
+
+    <!-- ==================== UNIVERSAL INTERACTIVE QUIZ & FORMULA BUILDER MODAL ==================== -->
+    <div id="quiz-modal" class="hidden absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3">
+        <div class="w-full max-w-md rounded-3xl bg-slate-900 border-2 border-cyan-500/50 shadow-2xl p-4 animate-pop flex flex-col max-h-[92dvh]">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span id="qm-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                        COURS 1
+                    </span>
+                    <span id="qm-mode-tag" class="text-xs font-bold text-amber-300">
+                        <i class="fa-solid fa-bolt"></i> Défi Cerveau
+                    </span>
+                </div>
+                <div id="qm-timer-pill" class="hidden px-2.5 py-0.5 rounded-full bg-rose-950 border border-rose-500/50 text-rose-300 text-xs font-black math-font">
+                    60s
+                </div>
+                <button onclick="closeQuizModal()" class="text-slate-400 hover:text-white w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Question Body -->
+            <div class="py-3 overflow-y-auto custom-scroll space-y-3">
+                <div class="text-sm sm:text-base font-extrabold text-white leading-snug" id="qm-question">
+                    Quelle est la définition exacte d'une application surjective ?
+                </div>
+
+                <!-- Formula Builder Slot (Used when question is in "Forge" mode) -->
+                <div id="qm-forge-area" class="hidden space-y-2">
+                    <div class="text-[11px] text-cyan-300 font-semibold">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Touche les symboles dans l'ordre exact pour assembler la formule :
+                    </div>
+                    <div id="qm-forge-slots" class="min-h-[48px] p-2.5 rounded-2xl bg-slate-950 border-2 border-dashed border-cyan-500/40 flex flex-wrap items-center gap-1.5 math-font text-sm text-emerald-300">
+                        <!-- Built tokens appear here -->
+                    </div>
+                    <div id="qm-forge-bank" class="flex flex-wrap gap-1.5 pt-1">
+                        <!-- Token buttons -->
+                    </div>
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button onclick="clearForgeTokens()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">
+                            Effacer
+                        </button>
+                        <button onclick="submitForgeAnswer()" class="btn-juicy px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-black">
+                            Valider la Formule <i class="fa-solid fa-check ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Multiple Choice Options -->
+                <div id="qm-options" class="space-y-2">
+                    <!-- Option buttons injected by JS -->
+                </div>
+
+                <!-- Explanation & Deep Intuition Box (Revealed on Answer) -->
+                <div id="qm-feedback" class="hidden rounded-2xl p-3 bg-slate-950/90 border border-slate-700 space-y-1.5">
+                    <div id="qm-feedback-title" class="text-xs font-black uppercase"></div>
+                    <div id="qm-feedback-logic" class="text-xs text-slate-200 leading-relaxed"></div>
+                    <div id="qm-feedback-mnemonic" class="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-xl p-2 mt-1"></div>
+                </div>
+            </div>
+
+            <!-- Continue Button -->
+            <div id="qm-footer" class="hidden pt-2 border-t border-slate-800">
+                <button onclick="nextOrCloseQuiz()" class="btn-juicy w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black text-sm shadow-lg">
+                    CONTINUER <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SAVE / SETTINGS / GITHUB PAGES MODAL ==================== -->
+    <div id="save-modal" class="hidden absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700 p-4 space-y-3 animate-pop">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 class="text-base font-black text-white"><i class="fa-solid fa-gear text-cyan-400 mr-1.5"></i>Paramètres & Sauvegarde</h3>
+                <button onclick="closeSaveModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Sound & Vibration Toggles -->
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="toggleSound()" id="btn-toggle-sound" class="btn-juicy p-2.5 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center gap-2 text-xs font-bold text-emerald-300">
+                    <i class="fa-solid fa-volume-high"></i> Sons: ON
+                </button>
+                <button onclick="toggleHaptics()" id="btn-toggle-haptics" class="btn-juicy p-2.5 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center gap-2 text-xs font-bold text-emerald-300">
+                    <i class="fa-solid fa-mobile-screen-button"></i> Vibrations: ON
+                </button>
+            </div>
+
+            <div class="bg-slate-950 rounded-2xl p-3 border border-slate-800 space-y-2">
+                <div class="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-database"></i> Sauvegarde Navigateur Active
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Ta progression est sauvegardée automatiquement dans la base de données du navigateur (IndexedDB + Cloud Sync). Tu peux aussi copier ton code de sauvegarde portable :
+                </p>
+                <textarea id="save-code-input" rows="2" class="w-full rounded-xl bg-slate-900 border border-slate-700 p-2 text-[10px] math-font text-slate-300 focus:outline-none focus:border-cyan-400" placeholder="Code de sauvegarde..."></textarea>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportSaveCode()" class="btn-juicy py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold">
+                        <i class="fa-solid fa-copy mr-1"></i> Copier Code
+                    </button>
+                    <button onclick="importSaveCode()" class="btn-juicy py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+                        <i class="fa-solid fa-file-import mr-1"></i> Charger Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast-banner" class="pointer-events-none fixed top-14 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 -translate-y-4">
+        <div class="px-4 py-2 rounded-2xl bg-slate-900/95 border border-cyan-400/50 shadow-2xl text-xs font-extrabold text-white flex items-center gap-2">
+            <i id="toast-icon" class="fa-solid fa-sparkles text-amber-400"></i>
+            <span id="toast-text">Notification</span>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * 1. BASE DE DONNÉES COMPLÈTE DES 6 COURS D'ALGÈBRE LINÉAIRE (POLYCOPIÉS 1 À 6)
+ * ============================================================================
+ * Contient toute la théorie, les symboles, les formules à trous (Forge),
+ * les questions de compréhension logique et les exemples précis du cours.
+ */
+const DAYS_ROADMAP = [
+    { day: 1, course: 1, title: "Ensembles, ⊂, ∩, ∪, ∁E & Cardinal", desc: "Appartenance, inclusion, opérations & ensembles ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ" },
+    { day: 2, course: 1, title: "Propriétés & Quantificateurs ∀, ∃", desc: "Sous-ensembles par propriété caractéristique et négations" },
+    { day: 3, course: 2, title: "Lois de De Morgan & Implication ⇒", desc: "Complémentaire d'intersection/réunion et zone des contre-exemples" },
+    { day: 4, course: 2, title: "Contraposée, Absurde & Équivalence ⇔", desc: "3 méthodes de preuve (n² pair ⇒ n pair) et double implication" },
+    { day: 5, course: 3, title: "Ensemble des Parties P(E) & E × F", desc: "Piège α ∈ E vs {α} ∈ P(E) et couples du produit cartésien" },
+    { day: 6, course: 3, title: "Factorielles n! & Triangle de Pascal", desc: "Coefficients binomiaux C(n,k), symétrie et relation de Pascal" },
+    { day: 7, course: 4, title: "Binôme de Newton & Antécédents", desc: "Formule de (x+y)ⁿ et ensemble des antécédents f⁻¹({y})" },
+    { day: 8, course: 4, title: "Image Directe f(A) & Réciproque f⁻¹(B)", desc: "Im(f) = f(E), piège de f([2,4]) sur x²-5x+6 et cos(x)" },
+    { day: 9, course: 5, title: "Injection (4 critères), Restriction & g∘f", desc: "Séparer les doublons, f|_A sur [5/2, +∞[ et non-commutativité" },
+    { day: 10, course: 6, title: "Surjection, Bijection & Réciproque f⁻¹", desc: "Card(f⁻¹({y}))=1, f⁻¹∘f=id_E et processus en 2 étapes" }
+];
+
+const QUESTIONS_DB = [
+    // --- COURS 1 : ENSEMBLES & LOGIQUE DE BASE ---
+    {
+        id: "c1_1", day: 1, course: 1,
+        q: "Quelle est la définition exacte du complémentaire ∁_E(A) de A dans E ?",
+        options: [
+            "{ x ∈ E | x ∉ A }",
+            "{ x ∈ A | x ∉ E }",
+            "{ x ∈ E | x ∈ A }",
+            "∅"
+        ],
+        ans: 0,
+        forgeTokens: ["{ x ∈ E", "|", "x ∉ A }"],
+        forgeDistractors: ["x ∈ A }", "∀x", "x = A"],
+        logic: "Le complémentaire ∁_E(A) contient tous les éléments de l'ensemble de référence E qui NE sont PAS dans A.",
+        mnemonic: "Mémo visuel : Tout le rectangle E sauf la bulle A !"
+    },
+    {
+        id: "c1_2", day: 1, course: 1,
+        q: "En mathématiques, comment est défini l'ensemble réunion A ∪ B (« A union B ») ?",
+        options: [
+            "{ x ∈ E | x ∈ A ou x ∈ B } (avec « ou » inclusif)",
+            "{ x ∈ E | x ∈ A et x ∈ B }",
+            "{ x ∈ E | x ∈ A mais x ∉ B }",
+            "{ (x,y) | x ∈ A et y ∈ B }"
+        ],
+        ans: 0,
+        forgeTokens: ["{ x ∈ E |", "x ∈ A", "ou", "x ∈ B }"],
+        forgeDistractors: ["et", "∉", "⇒"],
+        logic: "En maths, le « ou » est toujours INCLUSIF : si x appartient aux deux ensembles A et B à la fois, il est bien dans A ∪ B !",
+        mnemonic: "∪ = Union = OU (Unir les deux ensembles). ∩ = Intersection = ET."
+    },
+    {
+        id: "c1_3", day: 1, course: 1,
+        q: "Quelle est la définition de l'intersection A ∩ B (« A inter B ») ?",
+        options: [
+            "{ x ∈ E | x ∈ A et x ∈ B }",
+            "{ x ∈ E | x ∈ A ou x ∈ B }",
+            "{ x ∈ E | x ∉ A et x ∉ B }",
+            "A ⊂ B"
+        ],
+        ans: 0,
+        forgeTokens: ["{ x ∈ E |", "x ∈ A", "et", "x ∈ B }"],
+        forgeDistractors: ["ou", "∉", "⊂"],
+        logic: "Pour être dans l'intersection A ∩ B, un élément x doit vérifier les deux conditions simultanément : appartenir à A ET à B.",
+        mnemonic: "∩ ressemble à un pont qui relie ce qui est commun aux deux."
+    },
+    {
+        id: "c1_4", day: 1, course: 1,
+        q: "Quelle est la chaîne d'inclusion exacte des ensembles de nombres classiques ?",
+        options: [
+            "ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ",
+            "ℤ ⊂ ℕ ⊂ ℚ ⊂ ℝ",
+            "ℕ ⊂ ℚ ⊂ ℤ ⊂ ℝ",
+            "ℝ ⊂ ℚ ⊂ ℤ ⊂ ℕ"
+        ],
+        ans: 0,
+        forgeTokens: ["ℕ", "⊂ ℤ", "⊂ ℚ", "⊂ ℝ"],
+        forgeDistractors: ["∈", "⊃"],
+        logic: "ℕ (naturels : 0,1,2...) ⊂ ℤ (relatifs : -2,-1,0,1...) ⊂ ℚ (rationnels p/q avec q≠0) ⊂ ℝ (réels, incluant √2, π...).",
+        mnemonic: "Naturels → Relatifs (Z) → Quotients (Q) → Réels (R)."
+    },
+    {
+        id: "c1_5", day: 1, course: 1,
+        q: "Soit E = {α, β, γ, δ}, A = {α, β} et C = {γ, δ}. Que vaut A ∩ C et Card(E) ?",
+        options: [
+            "A ∩ C = ∅ (ensemble vide) et Card(E) = 4",
+            "A ∩ C = {∅} et Card(E) = 4",
+            "A ∩ C = E et Card(E) = 2",
+            "A ∩ C = {α, γ} et Card(E) = 4"
+        ],
+        ans: 0,
+        logic: "Attention au piège d'écriture du cours : l'ensemble vide se note ∅ (ou {}) mais JAMAIS {∅} (qui est un ensemble contenant 1 élément !). Et E possède 4 éléments donc Card(E) = 4.",
+        mnemonic: "Piège classique : ∅ n'a pas d'accolades autour !"
+    },
+    {
+        id: "c1_6", day: 2, course: 1,
+        q: "Dans ℝ, soit A = ]1/3, +∞[ et B = {x ∈ ℝ | x² = 2} = {-√2, √2}. Que vaut A ∩ B ?",
+        options: [
+            "{ √2 }",
+            "{ -√2, √2 }",
+            "]1/3, √2]",
+            "∅"
+        ],
+        ans: 0,
+        logic: "A ∩ B = {x ∈ ℝ | x > 1/3 et x² = 2}. Comme √2 ≈ 1.414 > 1/3 et -√2 < 0, seul √2 vérifie les deux propriétés !",
+        mnemonic: "Intersection = éléments de B qui vérifient aussi la condition de A."
+    },
+    {
+        id: "c1_7", day: 2, course: 1,
+        q: "Dans ℝ, si A = ]1/3, +∞[ = {x ∈ ℝ | x > 1/3}, que vaut son complémentaire ∁_ℝ(A) ?",
+        options: [
+            "]-∞, 1/3]",
+            "]-∞, 1/3[",
+            "[1/3, +∞[",
+            "ℝ \\ {1/3}"
+        ],
+        ans: 0,
+        logic: "La négation stricte de (x > 1/3) est (x ≤ 1/3). Le crochet en 1/3 devient donc FERMÉ : ]-∞, 1/3].",
+        mnemonic: "La négation de '>' est '≤' (le crochet se retourne !)."
+    },
+
+    // --- COURS 2 : NÉGATION, DE MORGAN, IMPLICATION, ÉQUIVALENCE ---
+    {
+        id: "c2_1", day: 2, course: 2,
+        q: "Quelle est la négation logique exacte de l'énoncé : « ∀x ∈ E, x vérifie P » ?",
+        options: [
+            "∃x ∈ E, x vérifie (non P)",
+            "∀x ∈ E, x vérifie (non P)",
+            "∃x ∉ E, x vérifie P",
+            "Il n'existe aucun x vérifiant P"
+        ],
+        ans: 0,
+        forgeTokens: ["∃x ∈ E,", "x vérifie", "non P"],
+        forgeDistractors: ["∀x ∈ E,", "x vérifie P"],
+        logic: "Pour contredire « Tous les éléments vérifient P », il suffit de trouver UN SEUL contre-exemple : « Il existe au moins un x ∈ E qui vérifie non P ».",
+        mnemonic: "La négation transforme ∀ en ∃ et P en (non P) : c'est la chasse au contre-exemple !"
+    },
+    {
+        id: "c2_2", day: 3, course: 2,
+        q: "Lois de De Morgan : Que vaut le complémentaire d'une intersection ∁_E(A ∩ B) ?",
+        options: [
+            "∁_E(A) ∪ ∁_E(B)",
+            "∁_E(A) ∩ ∁_E(B)",
+            "A ∪ B",
+            "∁_E(A) \\ ∁_E(B)"
+        ],
+        ans: 0,
+        forgeTokens: ["∁_E(A ∩ B)", "=", "∁_E(A)", "∪", "∁_E(B)"],
+        forgeDistractors: ["∩", "⊂"],
+        logic: "Ne pas être dans A ∩ B signifie ne pas vérifier (P et Q), donc vérifier (non P) OU (non Q). L'intersection ∩ se retourne en réunion ∪ !",
+        mnemonic: "De Morgan : « Casser la barre/complémentaire retourne le symbole ∩ ↔ ∪ »."
+    },
+    {
+        id: "c2_3", day: 3, course: 2,
+        q: "Lois de De Morgan : Que vaut le complémentaire d'une réunion ∁_E(A ∪ B) ?",
+        options: [
+            "∁_E(A) ∩ ∁_E(B)",
+            "∁_E(A) ∪ ∁_E(B)",
+            "∅",
+            "A ∩ B"
+        ],
+        ans: 0,
+        forgeTokens: ["∁_E(A ∪ B)", "=", "∁_E(A)", "∩", "∁_E(B)"],
+        forgeDistractors: ["∪", "⇒"],
+        logic: "Logiquement : non(P ou Q) ⇔ (non P) ET (non Q). Si un élément n'est dans aucun des deux, il est hors de A ET hors de B.",
+        mnemonic: "non(P ou Q) = (non P) ET (non Q)."
+    },
+    {
+        id: "c2_4", day: 3, course: 2,
+        q: "Si A = {x ∈ E | P(x)} et B = {x ∈ E | Q(x)}, comment se traduit ensemblistement l'implication « ∀x ∈ E, P(x) ⇒ Q(x) » ?",
+        options: [
+            "A ⊂ B",
+            "B ⊂ A",
+            "A = B",
+            "A ∩ B = ∅"
+        ],
+        ans: 0,
+        logic: "Si tout élément qui vérifie P vérifie aussi Q, alors tout élément de A appartient automatiquement à B, donc la bulle A est incluse dans la bulle B (A ⊂ B).",
+        mnemonic: "Flèche d'implication P ⇒ Q correspond à l'ouverture de l'inclusion A ⊂ B !"
+    },
+    {
+        id: "c2_5", day: 3, course: 2,
+        q: "Quelle est la NÉGATION de l'implication « ∀x ∈ E, P(x) ⇒ Q(x) » ?",
+        options: [
+            "∃x ∈ E, P(x) et (non Q(x))  [soit A ∩ ∁_E(B) ≠ ∅]",
+            "∀x ∈ E, P(x) ⇒ (non Q(x))",
+            "∀x ∈ E, (non P(x)) ⇒ (non Q(x))",
+            "∃x ∈ E, (non P(x)) ⇒ Q(x)"
+        ],
+        ans: 0,
+        forgeTokens: ["∃x ∈ E,", "P(x)", "et", "non Q(x)"],
+        forgeDistractors: ["⇒", "∀x ∈ E,", "ou"],
+        logic: "PIÈGE MAJEUR : La négation d'une implication N'EST PAS une implication ! Pour prouver que (P ⇒ Q) est fausse, on exhibe un contre-exemple x qui vérifie l'hypothèse P mais PAS la conclusion Q.",
+        mnemonic: "Zone des contre-exemples = A ∩ ∁_E(B) ≠ ∅ (Hypothèse vraie ET conclusion fausse)."
+    },
+    {
+        id: "c2_6", day: 3, course: 2,
+        q: "L'énoncé « ∀x ∈ ℝ, x² - 5x + 6 = 0 ⇒ x = 2 » est-il Vrai ou Faux ?",
+        options: [
+            "FAUX : contre-exemple x = 3 (car 3² - 15 + 6 = 0 et 3 ≠ 2)",
+            "VRAI : car 2² - 5(2) + 6 = 0",
+            "VRAI : car {2} ⊂ {2, 3}",
+            "FAUX : contre-exemple x = 0"
+        ],
+        ans: 0,
+        logic: "Ici A = {2, 3} et B = {2}. Or A ⊄ B ! Le nombre x = 3 vérifie l'hypothèse (x²-5x+6=0) mais pas la conclusion (x=2). C'est l'implication réciproque (x=2 ⇒ x²-5x+6=0) qui est vraie.",
+        mnemonic: "Toujours vérifier si TOUTES les solutions de l'hypothèse sont dans la conclusion !"
+    },
+    {
+        id: "c2_7", day: 4, course: 2,
+        q: "Quelle est la CONTRAPOSÉE de l'implication « P ⇒ Q » (qui a exactement la même valeur de vérité) ?",
+        options: [
+            "(non Q) ⇒ (non P)",
+            "Q ⇒ P",
+            "(non P) ⇒ (non Q)",
+            "P et (non Q)"
+        ],
+        ans: 0,
+        forgeTokens: ["(non Q)", "⇒", "(non P)"],
+        forgeDistractors: ["Q", "P", "⇔"],
+        logic: "La contraposée inverse l'ordre ET nie les deux propositions : (non Q) ⇒ (non P). Elle est logiquement équivalente à P ⇒ Q ! (Attention à ne pas la confondre avec la réciproque Q ⇒ P).",
+        mnemonic: "Contraposée = on croise ET on nie : (non Q) ⇒ (non P)."
+    },
+    {
+        id: "c2_8", day: 4, course: 2,
+        q: "Pour démontrer « ∀n ∈ ℕ, n² pair ⇒ n pair » par la méthode INDIRECTE (contraposée), que démontre-t-on ?",
+        options: [
+            "n impair ⇒ n² impair (avec n = 2k+1 ⇒ n² = 4k²+4k+1)",
+            "n pair ⇒ n² pair",
+            "∃n ∈ ℕ, n² pair et n impair",
+            "n² impair ⇒ n pair"
+        ],
+        ans: 0,
+        logic: "La contraposée de (n² pair ⇒ n pair) est (non(n pair) ⇒ non(n² pair)), soit (n impair ⇒ n² impair). En posant n=2k+1, n² = 4k²+4k+1 = 2(2k²+2k)+1 qui est impair !",
+        mnemonic: "Méthode indirecte du cours = preuve par la contraposée."
+    },
+    {
+        id: "c2_9", day: 4, course: 2,
+        q: "Comment démontre-t-on habituellement une équivalence « P ⇔ Q » (qui correspond ensemblistement à A = B) ?",
+        options: [
+            "Par double implication : montrer (P ⇒ Q) ET (Q ⇒ P)",
+            "En montrant un exemple où P et Q sont vrais",
+            "En montrant (P ⇒ Q) uniquement",
+            "En montrant que A ∪ B = E"
+        ],
+        ans: 0,
+        logic: "Une équivalence P ⇔ Q signifie que l'implication P ⇒ Q (A ⊂ B) ET sa réciproque Q ⇒ P (B ⊂ A) sont toutes les deux vraies.",
+        mnemonic: "⇔ a deux pointes : il faut prouver l'aller (⇒) et le retour (⇐)."
+    },
+
+    // --- COURS 3 : OPÉRATIONS SUR LES ENSEMBLES & COMBINATOIRE ---
+    {
+        id: "c3_1", day: 5, course: 3,
+        q: "Soit E un ensemble et α un élément de E (α ∈ E). Laquelle de ces écritures concernant l'ensemble des parties P(E) est EXACTE ?",
+        options: [
+            "{α} ⊂ E  et  {α} ∈ P(E)",
+            "α ⊂ E  et  α ∈ P(E)",
+            "{α} ∈ E  et  {α} ⊂ P(E)",
+            "P(E) ⊂ E"
+        ],
+        ans: 0,
+        forgeTokens: ["{α}", "∈", "P(E)"],
+        forgeDistractors: ["α", "⊂ E"],
+        logic: "P(E) = {A | A ⊂ E} est l'ensemble des sous-ensembles de E. Comme α est un élément de E, le singleton {α} est un sous-ensemble de E ({α} ⊂ E), donc {α} est un ÉLÉMENT de P(E) ({α} ∈ P(E)).",
+        mnemonic: "Élément ∈ E  ⇔  Sous-ensemble {élément} ⊂ E  ⇔  {élément} ∈ P(E)."
+    },
+    {
+        id: "c3_2", day: 5, course: 3,
+        q: "Comment est défini le produit cartésien E × F de deux ensembles E et F ?",
+        options: [
+            "{ (x, y) | x ∈ E et y ∈ F }",
+            "{ {x, y} | x ∈ E ou y ∈ F }",
+            "E ∩ F",
+            "{ x × y | x ∈ E, y ∈ F }"
+        ],
+        ans: 0,
+        forgeTokens: ["{ (x, y) |", "x ∈ E", "et", "y ∈ F }"],
+        forgeDistractors: ["ou", "⊂"],
+        logic: "E × F est l'ensemble des COUPLES ordonnés (x, y) où la 1ère coordonnée x vient de E et la 2ème coordonnée y vient de F. Par exemple ℝ × ℝ = ℝ².",
+        mnemonic: "Produit cartésien = couples ordonnés (x, y) comme dans un repère cartésien !"
+    },
+    {
+        id: "c3_3", day: 6, course: 3,
+        q: "Que vaut par convention 0! (zéro factorielle) et que vaut 5! ?",
+        options: [
+            "0! = 1  et  5! = 120",
+            "0! = 0  et  5! = 120",
+            "0! = 1  et  5! = 60",
+            "0! = 1  et  5! = 720"
+        ],
+        ans: 0,
+        logic: "Par convention mathématique indispensable aux formules binomiales, 0! = 1. Et 5! = 5 × 4 × 3 × 2 × 1 = 120 (6! = 720).",
+        mnemonic: "1!=1, 2!=2, 3!=6, 4!=24, 5!=120, 6!=720, et 0! = 1 !"
+    },
+    {
+        id: "c3_4", day: 6, course: 3,
+        q: "Que représente géométriquement/ensemblistement le coefficient binomial C(n, k) = (n parmi k) pour un ensemble E de cardinal n ?",
+        options: [
+            "Le nombre de sous-ensembles A ⊂ E ayant exactement k éléments",
+            "Le nombre de couples (n, k)",
+            "Le quotient n / k",
+            "Le nombre d'applications de E dans E"
+        ],
+        ans: 0,
+        forgeTokens: ["n!", "/", "( k!(n-k)! )"],
+        forgeDistractors: ["(n+k)!", "k! / n!"],
+        logic: "C(n,k) = Card({ A ⊂ E | Card(A) = k }). Sa formule explicite est n! / (k! (n-k)!).",
+        mnemonic: "« k parmi n » = combien de groupes de k éléments on peut choisir dans un sac de n éléments."
+    },
+    {
+        id: "c3_5", day: 6, course: 3,
+        q: "Quelle est la relation du Triangle de Pascal reliant un coefficient binomial à ses « deux parents » ?",
+        options: [
+            "C(n, k) = C(n-1, k) + C(n-1, k-1)",
+            "C(n, k) = C(n-1, k) × C(n-1, k-1)",
+            "C(n, k) = C(n, k-1) + C(n, k+1)",
+            "C(n, k) = n! - k!"
+        ],
+        ans: 0,
+        forgeTokens: ["C(n,k) =", "C(n-1, k)", "+", "C(n-1, k-1)"],
+        forgeDistractors: ["×", "-", "C(n+1, k)"],
+        logic: "Dans le triangle de Pascal, chaque nombre est la somme des deux nombres situés juste au-dessus de lui à la ligne n-1 (rangs k et k-1).",
+        mnemonic: "Un enfant à la ligne n = somme de ses 2 parents à la ligne n-1."
+    },
+    {
+        id: "c3_6", day: 6, course: 3,
+        q: "Que vaut la somme de toute une ligne du triangle de Pascal : ∑_{k=0}^n C(n, k) = C(n,0) + C(n,1) + ... + C(n,n) ?",
+        options: [
+            "2ⁿ (qui est aussi le nombre total de sous-ensembles Card(P(E)))",
+            "n!",
+            "n²",
+            "2ⁿ⁻¹"
+        ],
+        ans: 0,
+        logic: "En sommant le nombre de sous-ensembles à 0 élément, 1 élément, ..., n éléments, on obtient tous les sous-ensembles possibles de E, soit 2ⁿ ! (Et par le binôme : (1+1)ⁿ = 2ⁿ).",
+        mnemonic: "Ligne 0 → 1, Ligne 1 → 2, Ligne 2 → 4, Ligne 3 → 8, Ligne 4 → 16 = 2ⁿ !"
+    },
+    {
+        id: "c3_7", day: 6, course: 3,
+        q: "Pourquoi a-t-on la propriété de symétrie C(n, k) = C(n, n-k) ?",
+        options: [
+            "Car choisir un sous-ensemble A de k éléments revient à choisir son complémentaire ∁_E(A) de n-k éléments",
+            "Car k = n - k",
+            "Car le triangle de Pascal n'a que des nombres pairs",
+            "Car n! = (n-k)!"
+        ],
+        ans: 0,
+        logic: "À chaque sous-ensemble A de taille k correspond de façon unique son complémentaire ∁_E(A) de taille n-k. Il y a donc exactement autant de parties à k éléments que de parties à n-k éléments !",
+        mnemonic: "Choisir 2 élus parmi 10 revient à choisir les 8 non-élus parmi 10 !"
+    },
+    {
+        id: "c3_8", day: 7, course: 3,
+        q: "Quelle est la formule du Binôme de Newton pour développer (x + y)ⁿ ?",
+        options: [
+            "∑_{k=0}^n C(n, k) x^{n-k} y^k",
+            "xⁿ + yⁿ",
+            "∑_{k=0}^n n! x^k y^k",
+            "(x + y) × n!"
+        ],
+        ans: 0,
+        forgeTokens: ["∑_{k=0}^n", "C(n,k)", "x^{n-k}", "y^k"],
+        forgeDistractors: ["x^n + y^n", "k!"],
+        logic: "En développant (x+y)(x+y)...(x+y) (n facteurs), le terme x^{n-k}y^k apparaît autant de fois qu'on peut choisir k parenthèses donnant 'y' parmi les n, soit C(n,k) fois !",
+        mnemonic: "Pour n=3 : 1, 3, 3, 1 → x³ + 3x²y + 3xy² + y³. Pour n=4 : 1, 4, 6, 4, 1."
+    },
+    {
+        id: "c3_9", day: 7, course: 3,
+        q: "Exemple du cours : Quel est le coefficient de x³ dans le développement de (1 + x)⁷ ?",
+        options: [
+            "C(7, 3) = (7 × 6 × 5) / 6 = 35",
+            "C(7, 3) = 21",
+            "7³ = 343",
+            "3! = 6"
+        ],
+        ans: 0,
+        logic: "Par le binôme de Newton, (1+x)⁷ = ∑ C(7,k) x^k. Le coefficient devant x³ est donc C(7,3) = 7! / (3! 4!) = (7 × 6 × 5) / (3 × 2 × 1) = 35.",
+        mnemonic: "Astuce de simplification du cours : 3 facteurs en haut (7×6×5) divisés par 3! (6) = 35."
+    },
+
+    // --- COURS 4 : APPLICATIONS, ANTÉCÉDENTS, IMAGE DIRECTE & RÉCIPROQUE ---
+    {
+        id: "c4_1", day: 7, course: 4,
+        q: "Soit f : E → F une application et y ∈ F. Comment est défini l'ensemble des antécédents f⁻¹({y}) ?",
+        options: [
+            "f⁻¹({y}) = { x ∈ E | f(x) = y } (sous-ensemble de E)",
+            "f⁻¹({y}) = 1 / f(y)",
+            "f⁻¹({y}) est toujours un unique élément de E",
+            "f⁻¹({y}) = { f(y) }"
+        ],
+        ans: 0,
+        forgeTokens: ["f⁻¹({y}) =", "{ x ∈ E |", "f(x) = y }"],
+        forgeDistractors: ["{ y ∈ F |", "x = f(y) }"],
+        logic: "Même quand l'application réciproque f⁻¹ n'existe pas, la notation ensembliste f⁻¹({y}) existe TOUJOURS : c'est l'ensemble (éventuellement vide ou à plusieurs éléments) des x ∈ E dont l'image par f vaut y.",
+        mnemonic: "Chercher f⁻¹({y}) = résoudre l'équation f(x) = y d'inconnue x ∈ E !"
+    },
+    {
+        id: "c4_2", day: 7, course: 4,
+        q: "Pour une application quelconque f : E → F et un élément x ∈ E, a-t-on toujours f⁻¹({f(x)}) = {x} ?",
+        options: [
+            "NON : en général x ∈ f⁻¹({f(x)}), mais il peut y avoir d'autres doublons x' ayant la même image !",
+            "OUI : c'est vrai pour toute application",
+            "NON : f⁻¹({f(x)}) est toujours vide",
+            "OUI : car f⁻¹ annule toujours f"
+        ],
+        ans: 0,
+        logic: "Piège souligné en rouge dans le Cours 4 : f⁻¹({f(x)}) contient x, mais aussi tous les autres x' ∈ E tels que f(x') = f(x). On a f⁻¹({f(x)}) = {x} SEULEMENT si f est injective !",
+        mnemonic: "Sur x² - 5x + 6, f⁻¹({f(x)}) = {x, 5-x} !"
+    },
+    {
+        id: "c4_3", day: 8, course: 4,
+        q: "Soit A ⊂ E. Quelle est la définition de l'image directe f(A) de A par f ?",
+        options: [
+            "f(A) = { f(x) | x ∈ A } = { y ∈ F | ∃x ∈ A, y = f(x) } ⊂ F",
+            "f(A) = { x ∈ E | f(x) ∈ A } ⊂ E",
+            "f(A) = { y ∈ F | ∀x ∈ A, y = f(x) }",
+            "f(A) = E \\ A"
+        ],
+        ans: 0,
+        forgeTokens: ["{ y ∈ F |", "∃x ∈ A,", "y = f(x) }"],
+        forgeDistractors: ["∀x ∈ A,", "{ x ∈ E |"],
+        logic: "L'image directe f(A) est le sous-ensemble de F formé de toutes les images des éléments de A (c'est-à-dire les y ∈ F qui ont au moins un antécédent dans A).",
+        mnemonic: "f(E) se note aussi Im(f) (l'image de l'application f)."
+    },
+    {
+        id: "c4_4", day: 8, course: 4,
+        q: "Exemple piège du Cours 4 : Pour f : ℝ → ℝ, f(x) = x² - 5x + 6, que vaut l'image directe f([2, 4]) ?",
+        options: [
+            "[-1/4, 2]  (et NON [f(2), f(4)] = [0, 2] !)",
+            "[0, 2]",
+            "[2, 4]",
+            "[-1/4, +∞["
+        ],
+        ans: 0,
+        logic: "Entre x=2 et x=4, la parabole descend jusqu'à son sommet en x = 5/2 = 2.5 où f(5/2) = -1/4, puis remonte jusqu'à f(4) = 2. Il faut toujours étudier les variations sur l'intervalle !",
+        mnemonic: "Ne jamais remplacer brutalement f([a,b]) par [f(a), f(b)] sans regarder le sommet !"
+    },
+    {
+        id: "c4_5", day: 8, course: 4,
+        q: "Soit B ⊂ F un sous-ensemble de l'ensemble d'arrivée. Quelle est la définition de l'image réciproque f⁻¹(B) ?",
+        options: [
+            "f⁻¹(B) = { x ∈ E | f(x) ∈ B } = ⋃_{y ∈ B} f⁻¹({y}) ⊂ E",
+            "f⁻¹(B) = { f(x) | x ∈ B } ⊂ F",
+            "f⁻¹(B) = { y ∈ B | f(y) ∈ E }",
+            "f⁻¹(B) = 1 / f(B)"
+        ],
+        ans: 0,
+        forgeTokens: ["f⁻¹(B) =", "{ x ∈ E |", "f(x) ∈ B }"],
+        forgeDistractors: ["{ y ∈ F |", "x ∈ B }"],
+        logic: "L'image réciproque f⁻¹(B) rassemble tous les éléments de départ x ∈ E dont l'image f(x) tombe dans la cible B.",
+        mnemonic: "Condition d'appartenance ultra simple : x ∈ f⁻¹(B) ⇔ f(x) ∈ B."
+    },
+    {
+        id: "c4_6", day: 8, course: 4,
+        q: "Exemple du Cours 4 : Soit E = [0, 2π], F = ℝ et f(x) = cos(x). Que valent f⁻¹(]2, 3[) et f⁻¹([0, 1]) ?",
+        options: [
+            "f⁻¹(]2, 3[) = ∅  et  f⁻¹([0, 1]) = [0, π/2] ∪ [3π/2, 2π]",
+            "f⁻¹(]2, 3[) = [0, 2π]  et  f⁻¹([0, 1]) = [0, π/2]",
+            "f⁻¹(]2, 3[) = ∅  et  f⁻¹([0, 1]) = [0, π]",
+            "f⁻¹(]2, 3[) = {2, 3}  et  f⁻¹([0, 1]) = {0}"
+        ],
+        ans: 0,
+        logic: "Comme cos(x) ∈ [-1, 1], aucun x ne donne cos(x) ∈ ]2, 3[, d'où ∅. Et sur le cercle trigo entre 0 et 2π, cos(x) ≥ 0 sur [0, π/2] union [3π/2, 2π].",
+        mnemonic: "Toujours visualiser le cercle trigonométrique pour cos(x) ≥ 0 !"
+    },
+
+    // --- COURS 5 : INJECTION, RESTRICTION, COMPOSITION ---
+    {
+        id: "c5_1", day: 9, course: 5,
+        q: "Laquelle de ces propositions est la définition standard utilisée pour DÉMONTRER que f : E → F est INJECTIVE ?",
+        options: [
+            "∀x, x' ∈ E, f(x) = f(x') ⇒ x = x'",
+            "∀y ∈ F, ∃x ∈ E, y = f(x)",
+            "∀x, x' ∈ E, x = x' ⇒ f(x) = f(x')",
+            "∀y ∈ F, Card(f⁻¹({y})) ≥ 1"
+        ],
+        ans: 0,
+        forgeTokens: ["∀x, x' ∈ E,", "f(x) = f(x')", "⇒", "x = x'"],
+        forgeDistractors: ["x ≠ x'", "⇔", "∃y ∈ F"],
+        logic: "C'est la contraposée de (x ≠ x' ⇒ f(x) ≠ f(x')). En partant de l'égalité f(x) = f(x'), il est beaucoup plus facile de calculer pour aboutir à x = x' (pas de doublons) !",
+        mnemonic: "Injectif = Zéro doublon : même image ⇒ même point de départ !"
+    },
+    {
+        id: "c5_2", day: 9, course: 5,
+        q: "Comment caractérise-t-on l'injectivité de f : E → F à l'aide du cardinal des antécédents ?",
+        options: [
+            "∀y ∈ F, Card(f⁻¹({y})) ≤ 1  (tout y a 0 ou 1 antécédent, jamais 2+)",
+            "∀y ∈ F, Card(f⁻¹({y})) ≥ 1",
+            "∀y ∈ F, Card(f⁻¹({y})) = 1",
+            "∀y ∈ F, Card(f⁻¹({y})) = 0"
+        ],
+        ans: 0,
+        forgeTokens: ["∀y ∈ F,", "Card(f⁻¹({y}))", "≤ 1"],
+        forgeDistractors: ["≥ 1", "= 1", "= 0"],
+        logic: "Une injection interdit que deux flèches arrivent au même y. Donc chaque y ∈ F reçoit AU PLUS une flèche : Card(f⁻¹({y})) ≤ 1.",
+        mnemonic: "Injectif : ≤ 1 antécédent. Surjectif : ≥ 1 antécédent. Bijectif : = 1 antécédent."
+    },
+    {
+        id: "c5_3", day: 9, course: 5,
+        q: "Comment démontre-t-on concrètement qu'une application f : E → F N'EST PAS injective ?",
+        options: [
+            "On exhibe un doublon (contre-exemple) : ∃x, x' ∈ E tels que x ≠ x' et f(x) = f(x')",
+            "On trouve un y ∈ F qui n'a pas d'antécédent",
+            "On montre que f(0) = 0",
+            "On calcule f(E)"
+        ],
+        ans: 0,
+        logic: "Pour casser l'injectivité, il suffit de trouver deux éléments distincts x ≠ x' dans E qui ont exactement la même image f(x) = f(x'). Exemple : pour x² sur ℝ, f(3) = f(-3) = 9 avec 3 ≠ -3.",
+        mnemonic: "Non injectif = trouver un couple de doublons (x ≠ x' mais f(x) = f(x'))."
+    },
+    {
+        id: "c5_4", day: 9, course: 5,
+        q: "L'application f : x ↦ x² est-elle injective de ℝ dans ℝ ? Et de ℕ dans ℕ ?",
+        options: [
+            "NON sur ℝ (car (-3)² = 3²), mais OUI sur ℕ (car sur ℕ, x² = x'² ⇒ x = x')",
+            "OUI sur ℝ et OUI sur ℕ",
+            "NON sur ℝ et NON sur ℕ",
+            "OUI sur ℝ et NON sur ℕ"
+        ],
+        ans: 0,
+        logic: "L'ensemble de départ E est primordial ! Sur ℕ, tous les entiers sont positifs, donc les doublons négatifs n'existent plus : x² = x'² ⇒ x = x'.",
+        mnemonic: "Toujours regarder l'ensemble de départ E avant de conclure sur l'injectivité !"
+    },
+    {
+        id: "c5_5", day: 9, course: 5,
+        q: "Dans le Cours 5, pour f(x) = x² - 5x + 6 sur ℝ, on a trouvé f⁻¹({f(x)}) = {x, 5-x}. Sur quel sous-ensemble A la restriction f|_A devient-elle injective ?",
+        options: [
+            "A = [5/2, +∞[  (ou A = ]-∞, 5/2], car cela sépare les doublons x et 5-x)",
+            "A = [0, 5]",
+            "A = ℝ \\ {0}",
+            "A = [-5, 5]"
+        ],
+        ans: 0,
+        logic: "Pour que f|_A soit injective, A ne doit jamais contenir à la fois x et son doublon 5-x (sauf quand x = 5-x ⇔ x = 5/2). En prenant A = [5/2, +∞[, si x > 5/2 alors son doublon 5-x < 5/2 est hors de A !",
+        mnemonic: "Couper la parabole à son axe de symétrie x = 5/2 sépare tous les doublons !"
+    },
+    {
+        id: "c5_6", day: 9, course: 5,
+        q: "Soient f : ℝ → ℝ, f(x) = x² et g : ℝ → ℝ, g(x) = cos(x). Que valent (f ∘ g)(x) et (g ∘ f)(x) ?",
+        options: [
+            "(f ∘ g)(x) = (cos(x))²   et   (g ∘ f)(x) = cos(x²)   (donc f ∘ g ≠ g ∘ f !)",
+            "(f ∘ g)(x) = cos(x²)   et   (g ∘ f)(x) = (cos(x))²",
+            "(f ∘ g)(x) = x² cos(x) = (g ∘ f)(x)",
+            "(f ∘ g)(x) = cos(2x)"
+        ],
+        ans: 0,
+        forgeTokens: ["(g ∘ f)(x)", "=", "g( f(x) )"],
+        forgeDistractors: ["f( g(x) )", "g(x) × f(x)"],
+        logic: "Dans (g ∘ f)(x) = g(f(x)), on applique D'ABORD f (celle de droite, près de x), puis g au résultat ! Et la composition n'est pas commutative : f ∘ g ≠ g ∘ f en général.",
+        mnemonic: "« g rond f de x » = g(f(x)) : celle qui touche x s'applique en premier !"
+    },
+
+    // --- COURS 6 : SURJECTION & BIJECTION ---
+    {
+        id: "c6_1", day: 10, course: 6,
+        q: "Quelles sont les 3 caractérisations équivalentes de « f : E → F est SURJECTIVE » ?",
+        options: [
+            "1) ∀y ∈ F, ∃x ∈ E, y = f(x)   2) ∀y ∈ F, Card(f⁻¹({y})) ≥ 1   3) Im(f) = f(E) = F",
+            "1) ∀x ∈ E, ∃y ∈ F, y = f(x)   2) Card(f⁻¹({y})) ≤ 1   3) Im(f) ⊂ F",
+            "1) ∀y ∈ F, Card(f⁻¹({y})) = 1   2) E = F",
+            "1) f(x) = f(x') ⇒ x = x'"
+        ],
+        ans: 0,
+        forgeTokens: ["∀y ∈ F,", "∃x ∈ E,", "y = f(x)"],
+        forgeDistractors: ["∀x ∈ E,", "∃y ∈ F,", "Card ≤ 1"],
+        logic: "Surjectif signifie que TOUT élément y de l'ensemble d'arrivée F possède AU MOINS UN antécédent x dans E. Autrement dit, aucun point de F n'est laissé de côté : Im(f) = F !",
+        mnemonic: "Surjectif = tout F est couvert = ≥ 1 antécédent pour chaque y ∈ F."
+    },
+    {
+        id: "c6_2", day: 10, course: 6,
+        q: "L'application constante f : E → F, x ↦ c (avec E ≠ ∅) est-elle surjective ?",
+        options: [
+            "Elle est surjective si et seulement si Card(F) = 1 (c'est-à-dire F = {c})",
+            "Elle est toujours surjective",
+            "Elle n'est jamais surjective",
+            "Elle est surjective si Card(E) ≥ 2"
+        ],
+        ans: 0,
+        logic: "L'image directe d'une application constante est f(E) = {c}. Pour avoir f(E) = F, il faut et il suffit que F ne contienne que cet unique élément c, soit Card(F) = 1 !",
+        mnemonic: "Image d'une fonction constante = {c}. Donc surjective ⇔ F = {c}."
+    },
+    {
+        id: "c6_3", day: 10, course: 6,
+        q: "Dans le Cours 6, l'application f : ℝ → ℝ², α ↦ (cos α, sin α) est-elle surjective ?",
+        options: [
+            "NON : par ex. (√2, -√2) n'a pas d'antécédent car cos(α) ∈ [-1,1]. Son image est le cercle trigonométrique",
+            "OUI : car cos et sin parcourent tout ℝ²",
+            "OUI : car cos²(α) + sin²(α) = 1",
+            "NON : car Im(f) = ∅"
+        ],
+        ans: 0,
+        logic: "Un point (u, v) ∈ ℝ² n'est atteint par (cos α, sin α) que s'il est sur le cercle trigonométrique (u² + v² = 1). Mais f induit une surjection de ℝ vers le cercle trigonométrique !",
+        mnemonic: "Restreindre l'ensemble d'arrivée F à Im(f) transforme toute application en surjection !"
+    },
+    {
+        id: "c6_4", day: 10, course: 6,
+        q: "Dans le grand exemple du Cours 6 : f : ℝ² → ℝ², (x,y) ↦ (x² - 2xy, 2x - y). Quelle condition sur (u,v) donne l'image Im(f) ?",
+        options: [
+            "Im(f) = { (u,v) ∈ ℝ² | v² ≥ 3u }  (obtenu via Δ = 4v² - 12u ≥ 0)",
+            "Im(f) = ℝ² (f est surjective)",
+            "Im(f) = { (u,v) ∈ ℝ² | u² + v² = 1 }",
+            "Im(f) = { (u,v) ∈ ℝ² | v = 2u }"
+        ],
+        ans: 0,
+        logic: "En substituant y = 2x - v dans x² - 2xy = u, on obtient le trinôme -3x² + 2vx - u = 0. Son discriminant est Δ = 4v² - 12u = 4(v² - 3u). Il a des solutions réelles x si et seulement si Δ ≥ 0 ⇔ v² ≥ 3u !",
+        mnemonic: "Équation du 2nd degré en x : antécédent existe ⇔ Discriminant Δ ≥ 0 !"
+    },
+    {
+        id: "c6_5", day: 10, course: 6,
+        q: "Quand dit-on qu'une application f : E → F est BIJECTIVE et quelles sont les relations avec sa réciproque f⁻¹ ?",
+        options: [
+            "Injective ET surjective ⇔ ∀y ∈ F, Card(f⁻¹({y})) = 1, avec f⁻¹ ∘ f = id_E et f ∘ f⁻¹ = id_F",
+            "Injective OU surjective, avec f⁻¹(y) = 1/f(y)",
+            "Card(f⁻¹({y})) ≥ 2, avec f ∘ f⁻¹ = 0",
+            "Uniquement quand E = ℝ et F = ℝ"
+        ],
+        ans: 0,
+        forgeTokens: ["∀y ∈ F,", "Card(f⁻¹({y}))", "= 1"],
+        forgeDistractors: ["≤ 1", "≥ 1", "= 0"],
+        logic: "Bijective = Injective (≤ 1 antécédent) + Surjective (≥ 1 antécédent) ⇔ Exactement 1 unique antécédent pour tout y ∈ F ! Cela permet de définir l'application réciproque f⁻¹ : F → E.",
+        mnemonic: "Bijection = mariage 1 pour 1 parfait entre E et F : y = f(x) ⇔ x = f⁻¹(y)."
+    },
+    {
+        id: "c6_6", day: 10, course: 6,
+        q: "Exemple du Cours 6 : Soit f : ]0, +∞[ → ]0, +∞[, x ↦ 1/√x. Elle est bijective ; quelle est son application réciproque f⁻¹ ?",
+        options: [
+            "f⁻¹ : ]0, +∞[ → ]0, +∞[, y ↦ 1/y²  (ou x ↦ 1/x² car la variable est muette)",
+            "f⁻¹ : y ↦ √y",
+            "f⁻¹ : y ↦ -1/√y",
+            "f⁻¹ : y ↦ y²"
+        ],
+        ans: 0,
+        logic: "Pour trouver f⁻¹(y), on résout f(x) = y avec x, y > 0 : 1/√x = y ⇔ 1/x = y² ⇔ x = 1/y². L'unique antécédent de y est 1/y² !",
+        mnemonic: "Trouver f⁻¹ = isoler x en fonction de y dans l'équation f(x) = y."
+    },
+    {
+        id: "c6_7", day: 10, course: 6,
+        q: "Quel est le processus en 2 étapes du Cours 6 pour créer une bijection à partir d'une application f : E → F ni injective ni surjective ?",
+        options: [
+            "Étape 1 : Remplacer F par Im(f) (surjective). Étape 2 : Remplacer E par A ⊂ E séparant les doublons avec f(A)=Im(f)",
+            "Étape 1 : Inverser x et y. Étape 2 : Dériver f",
+            "Étape 1 : Remplacer E par ∅. Étape 2 : Remplacer F par ℝ",
+            "C'est impossible de créer une bijection"
+        ],
+        ans: 0,
+        logic: "Étape 1 : En restreignant l'arrivée à Im(f), tout élément est atteint (surjection). Étape 2 : En restreignant le départ à une partie A ⊂ E qui garde un seul représentant par image, on élimine les doublons (injection) sans perdre d'image !",
+        mnemonic: "1) Couper le surplus à l'arrivée (F → Im f). 2) Couper les doublons au départ (E → A)."
+    }
+];
+
+const CODEX_SHEETS = [
+    {
+        course: 1,
+        title: "Cours 1 : Ensembles, Opérations & Quantificateurs",
+        badge: "Chapitre 1 • §1-2",
+        color: "cyan",
+        items: [
+            { term: "Appartenance vs Inclusion", formula: "x ∈ E   vs   A ⊂ E", explain: "Un élément x appartient (∈) à E. Un sous-ensemble A est inclus (⊂) dans E." },
+            { term: "Complémentaire ∁_E(A)", formula: "∁_E(A) = { x ∈ E | x ∉ A }", explain: "Contient tous les éléments de E qui ne vérifient pas la propriété P de A (négation : non P)." },
+            { term: "Intersection & Réunion", formula: "A ∩ B (ET)   |   A ∪ B (OU inclusif)", explain: "Dans A ∩ B, x est dans les deux. Dans A ∪ B, x est dans au moins l'un des deux." },
+            { term: "Ensembles de Nombres", formula: "ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ", explain: "Naturels (0,1,2...) ⊂ Relatifs (...-1,0,1...) ⊂ Rationnels (p/q) ⊂ Réels." }
+        ]
+    },
+    {
+        course: 2,
+        title: "Cours 2 : De Morgan, Implication ⇒ & Preuves",
+        badge: "Chapitre 1 • §2-4",
+        color: "purple",
+        items: [
+            { term: "Négation des Quantificateurs", formula: "non(∀x∈E, P(x)) ⇔ ∃x∈E, non P(x)", explain: "Pour réfuter une règle générale (∀), il suffit d'exhiber UN contre-exemple (∃)." },
+            { term: "Lois de De Morgan", formula: "∁_E(A ∩ B) = ∁_E(A) ∪ ∁_E(B)\n∁_E(A ∪ B) = ∁_E(A) ∩ ∁_E(B)", explain: "Prendre le complémentaire transforme l'intersection ∩ en réunion ∪ et inversement." },
+            { term: "Implication & Négation", formula: "(P ⇒ Q)  ⇔  A ⊂ B\nNégation : ∃x∈E, P(x) et non Q(x)", explain: "Piège : la négation d'une implication n'est PAS une implication ! C'est A ∩ ∁_E(B) ≠ ∅." },
+            { term: "Contraposée vs Réciproque", formula: "Contraposée : (non Q) ⇒ (non P) [= même vérité]\nRéciproque : Q ⇒ P [aucun lien a priori]", explain: "3 méthodes de preuve : Directe, Indirecte (par contraposée), ou par l'Absurde." }
+        ]
+    },
+    {
+        course: 3,
+        title: "Cours 3 : P(E), Produit Cartésien & Combinatoire",
+        badge: "Chapitre 1 • §5-6",
+        color: "amber",
+        items: [
+            { term: "Ensemble des parties P(E)", formula: "P(E) = { A | A ⊂ E }  ;  Card(P(E)) = 2ⁿ", explain: "Piège : si α ∈ E, alors {α} ⊂ E et {α} ∈ P(E)." },
+            { term: "Produit Cartésien E × F", formula: "E × F = { (x, y) | x ∈ E et y ∈ F }", explain: "Ensemble des couples ordonnés (x,y). ℝ × ℝ = ℝ²." },
+            { term: "Coefficients Binomiaux", formula: "C(n,k) = n! / (k!(n-k)!)   avec 0! = 1", explain: "Nombre de sous-ensembles à k éléments dans un ensemble à n éléments." },
+            { term: "Triangle de Pascal & Binôme", formula: "C(n,k) = C(n-1,k) + C(n-1,k-1)\n(x+y)ⁿ = ∑_{k=0}^n C(n,k) x^{n-k} y^k", explain: "Symétrie : C(n,k) = C(n,n-k). Somme d'une ligne : ∑ C(n,k) = 2ⁿ." }
+        ]
+    },
+    {
+        course: 4,
+        title: "Cours 4 : Applications, Antécédents, f(A) & f⁻¹(B)",
+        badge: "Chapitre 2 • §1-3",
+        color: "emerald",
+        items: [
+            { term: "Ensemble des Antécédents", formula: "f⁻¹({y}) = { x ∈ E | f(x) = y } ⊂ E", explain: "Existe toujours même si f n'est pas bijective ! En général f⁻¹({f(x)}) ≠ {x}." },
+            { term: "Image Directe f(A) & Im(f)", formula: "f(A) = { f(x) | x ∈ A } = { y∈F | ∃x∈A, y=f(x) }", explain: "Im(f) = f(E). Attention : pour x²-5x+6, f([2,4]) = [-1/4, 2] à cause du sommet en 5/2 !" },
+            { term: "Image Réciproque f⁻¹(B)", formula: "f⁻¹(B) = { x ∈ E | f(x) ∈ B } ⊂ E", explain: "Exemple : pour f(x)=cos(x) sur [0,2π], f⁻¹([0,1]) = [0, π/2] ∪ [3π/2, 2π]." }
+        ]
+    },
+    {
+        course: 5,
+        title: "Cours 5 : Injection, Restriction f|_A & Composition",
+        badge: "Chapitre 2 • §4-6",
+        color: "fuchsia",
+        items: [
+            { term: "4 Critères d'Injectivité", formula: "1) x ≠ x' ⇒ f(x) ≠ f(x')\n2) f(x) = f(x') ⇒ x = x'\n3) ∀y∈F, Card(f⁻¹({y})) ≤ 1\n4) ∀x∈E, f⁻¹({f(x)}) = {x}", explain: "Aucun doublon ! Pour montrer que f n'est pas injective, exhiber x ≠ x' avec f(x) = f(x')." },
+            { term: "Restriction f|_A", formula: "f|_A : A → F, x ↦ f(x)  ;  (f|_A)⁻¹({y}) = f⁻¹({y}) ∩ A", explain: "Pour rendre x²-5x+6 injective, on restreint à A = [5/2, +∞[ pour séparer x et 5-x." },
+            { term: "Composition g ∘ f", formula: "(g ∘ f)(x) = g(f(x))", explain: "Attention à l'ordre : on applique f en premier ! En général g ∘ f ≠ f ∘ g." }
+        ]
+    },
+    {
+        course: 6,
+        title: "Cours 6 : Surjection, Bijection & Réciproque f⁻¹",
+        badge: "Chapitre 2 • §7-8",
+        color: "orange",
+        items: [
+            { term: "3 Critères de Surjectivité", formula: "1) ∀y∈F, ∃x∈E, y = f(x)\n2) ∀y∈F, Card(f⁻¹({y})) ≥ 1\n3) f(E) = Im(f) = F", explain: "Tout élément y de F possède au moins un antécédent dans E." },
+            { term: "Bijection & Application Réciproque", formula: "Bijective ⇔ Injective ET Surjective ⇔ ∀y∈F, Card(f⁻¹({y})) = 1\nf⁻¹ ∘ f = id_E   et   f ∘ f⁻¹ = id_F", explain: "Tout y ∈ F possède un UNIQUE antécédent x = f⁻¹(y)." },
+            { term: "Processus en 2 Étapes", formula: "Étape 1 : F → Im(f) (surjective)\nÉtape 2 : E → A ⊂ E séparant les doublons", explain: "Permet de fabriquer une bijection A → Im(f) à partir de n'importe quelle application." }
+        ]
+    }
+];
+
+const SHOP_ITEMS = [
+    {
+        id: "suit_gold",
+        name: "Scaphandre Nautile d'Or",
+        desc: "Casque en or massif poli + Réservoir Oxygène +25% plus grand en plongée !",
+        cost: 200,
+        icon: "fa-helmet-safety",
+        type: "suit",
+        color: "#fbbf24"
+    },
+    {
+        id: "suit_neon",
+        name: "Scaphandre Abyssal Cyber-Néon",
+        desc: "Éclairage bioluminescent + Aimant à bulles d'O₂ et pièces sous-marines !",
+        cost: 380,
+        icon: "fa-user-astronaut",
+        type: "suit",
+        color: "#22d3ee"
+    },
+    {
+        id: "theme_emerald",
+        name: "Blocs Émeraude Quantique",
+        desc: "Change la palette de Block Blast en cristaux émeraude & or avec +15% de points !",
+        cost: 250,
+        icon: "fa-gem",
+        type: "blast_theme",
+        color: "#10b981"
+    },
+    {
+        id: "upgrade_shield",
+        name: "Soupape Anti-Erreur (Passif)",
+        desc: "Réduit de moitié la perte d'Oxygène en cas de mauvaise porte dans l'Abîme.",
+        cost: 300,
+        icon: "fa-shield-halved",
+        type: "passive",
+        color: "#a855f7"
+    },
+    {
+        id: "upgrade_multiplier",
+        name: "Alchimiste Binomial (x1.5 Or)",
+        desc: "Augmente définitivement tous tes gains de pièces de +50% dans tous les modes !",
+        cost: 450,
+        icon: "fa-sack-dollar",
+        type: "passive",
+        color: "#f59e0b"
+    }
+];
+
+let state = {
+    xp: 0,
+    level: 1,
+    coins: 150,
+    streak: 1,
+    lastPlayedDate: new Date().toISOString().slice(0, 10),
+    targetCourse: 0, // 0 = All (Smart SRS), 1..6 = Specific Course
+    blastBest: 0,
+    diverBest: 0,
+    soundOn: true,
+    hapticsOn: true,
+    ownedItems: [],
+    equippedSuit: "suit_copper",
+    equippedBlastTheme: "default",
+    mastery: {}, // questionId -> { correct: 0, wrong: 0, streak: 0 }
+    missions: [
+        { id: "m_blast", title: "Poser 12 blocs dans Block Blast", progress: 0, goal: 12, reward: 80, claimed: false },
+        { id: "m_diver", title: "Atteindre 250m en Scaphandre", progress: 0, goal: 250, reward: 100, claimed: false },
+        { id: "m_quiz", title: "Réussir 8 défis théoriques sans faute", progress: 0, goal: 8, reward: 120, claimed: false }
+    ]
+};
+
+// Persistent Browser Database (IndexedDB + window.name fallback, works seamlessly on GitHub Pages)
+const DB_NAME = "AlgebraAbyssBlastDB_v1";
+const STORE_NAME = "PlayerState";
+
+function saveState() {
+    try {
+        const serialized = JSON.stringify(state);
+        window.name = "ALGEBRA_SAVE:" + serialized;
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        req.onsuccess = (e) => {
+            const db = e.target.result;
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            tx.objectStore(STORE_NAME).put(serialized, "main");
+        };
+    } catch (err) {
+        console.warn("Save fallback active", err);
+    }
+    updateAllUI();
+}
+
+function loadState(callback) {
+    // 1. Check window.name first for instant synchronous restore
+    if (window.name && window.name.startsWith("ALGEBRA_SAVE:")) {
+        try {
+            const parsed = JSON.parse(window.name.replace("ALGEBRA_SAVE:", ""));
+            state = { ...state, ...parsed };
+        } catch (e) {}
+    }
+    // 2. Check IndexedDB for permanent cross-session persistence on GitHub Pages
+    try {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        req.onsuccess = (e) => {
+            const db = e.target.result;
+            const tx = db.transaction(STORE_NAME, "readonly");
+            const getReq = tx.objectStore(STORE_NAME).get("main");
+            getReq.onsuccess = () => {
+                if (getReq.result) {
+                    try {
+                        const parsed = JSON.parse(getReq.result);
+                        state = { ...state, ...parsed };
+                    } catch (err) {}
+                }
+                checkDailyStreak();
+                if (callback) callback();
+            };
+            getReq.onerror = () => {
+                checkDailyStreak();
+                if (callback) callback();
+            };
+        };
+        req.onerror = () => {
+            checkDailyStreak();
+            if (callback) callback();
+        };
+    } catch (e) {
+        checkDailyStreak();
+        if (callback) callback();
+    }
+}
+
+function checkDailyStreak() {
+    const today = new Date().toISOString().slice(0, 10);
+    if (state.lastPlayedDate !== today) {
+        const last = new Date(state.lastPlayedDate);
+        const now = new Date(today);
+        const diffDays = Math.round((now - last) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+            state.streak += 1;
+            showToast(`🔥 Streak Quotidien : ${state.streak} jours d'affilée !`, "fa-fire");
+        } else if (diffDays > 1) {
+            state.streak = 1;
+        }
+        state.lastPlayedDate = today;
+        // Reset daily missions on a new day
+        state.missions.forEach(m => { m.progress = 0; m.claimed = false; });
+        saveState();
+    }
+}
+
+/**
+ * ============================================================================
+ * 2. MOTEUR AUDIO SYNTHÉTIQUE (WEB AUDIO API) & VIBRATIONS HAPTIQUES
+ * ============================================================================
+ */
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+    }
+}
+
+function vibrate(pattern) {
+    if (state.hapticsOn && navigator.vibrate) {
+        try { navigator.vibrate(pattern); } catch (e) {}
+    }
+}
+
+function playSound(type) {
+    if (!state.soundOn) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === "pop") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(680, now + 0.08);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.start(now);
+        osc.stop(now + 0.09);
+        vibrate(12);
+    } else if (type === "clear") {
+        // Ascending chord arpeggio
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = "triangle";
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.frequency.setValueAtTime(freq, now + idx * 0.055);
+            g.gain.setValueAtTime(0.2, now + idx * 0.055);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.25);
+            o.start(now + idx * 0.055);
+            o.stop(now + idx * 0.055 + 0.26);
+        });
+        vibrate([25, 30, 45]);
+    } else if (type === "win") {
+        [587.33, 880, 1174.66].forEach((freq, idx) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = "sine";
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.frequency.setValueAtTime(freq, now + idx * 0.07);
+            g.gain.setValueAtTime(0.22, now + idx * 0.07);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.3);
+            o.start(now + idx * 0.07);
+            o.stop(now + idx * 0.07 + 0.32);
+        });
+        vibrate([30, 40, 30]);
+    } else if (type === "error") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(190, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.22);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.start(now);
+        osc.stop(now + 0.25);
+        vibrate([60, 40, 80]);
+    } else if (type === "bubble") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(980, now + 0.11);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
+        vibrate(15);
+    }
+}
+
+/**
+ * ============================================================================
+ * 3. SYSTÈME DE PARTICULES JUICY (CONFÉTTIS, BULLES, ÉTINCELLES)
+ * ============================================================================
+ */
+const fxCanvas = document.getElementById("fx-canvas");
+const fxCtx = fxCanvas.getContext("2d");
+let particles = [];
+
+function resizeFxCanvas() {
+    const shell = document.getElementById("app-shell");
+    fxCanvas.width = shell.clientWidth;
+    fxCanvas.height = shell.clientHeight;
+}
+window.addEventListener("resize", resizeFxCanvas);
+
+function spawnParticles(x, y, color = "#38bdf8", count = 22) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 5.5;
+        particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.5,
+            size: 3 + Math.random() * 4,
+            color,
+            alpha: 1,
+            decay: 0.02 + Math.random() * 0.02
+        });
+    }
+}
+
+function updateParticles() {
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15; // gravity
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        fxCtx.save();
+        fxCtx.globalAlpha = p.alpha;
+        fxCtx.fillStyle = p.color;
+        fxCtx.beginPath();
+        fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        fxCtx.fill();
+        fxCtx.restore();
+    }
+    requestAnimationFrame(updateParticles);
+}
+
+function triggerScreenShake() {
+    const shell = document.getElementById("app-shell");
+    shell.classList.remove("shake-fx");
+    void shell.offsetWidth;
+    shell.classList.add("shake-fx");
+}
+
+function showToast(text, icon = "fa-sparkles") {
+    const banner = document.getElementById("toast-banner");
+    document.getElementById("toast-text").textContent = text;
+    document.getElementById("toast-icon").className = `fa-solid ${icon} text-amber-400`;
+    banner.classList.remove("opacity-0", "-translate-y-4");
+    banner.classList.add("opacity-100", "translate-y-0");
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => {
+        banner.classList.add("opacity-0", "-translate-y-4");
+        banner.classList.remove("opacity-100", "translate-y-0");
+    }, 2600);
+}
+
+/**
+ * ============================================================================
+ * 4. MOTEUR D'APPRENTISSAGE INTELLIGENT (SRS) & PROGRESSION
+ * ============================================================================
+ */
+function pickSmartQuestion() {
+    let pool = QUESTIONS_DB;
+    if (state.targetCourse > 0) {
+        pool = QUESTIONS_DB.filter(q => q.course === state.targetCourse);
+    }
+    // Weight questions: unseen or previously wrong questions have much higher weight
+    const weighted = [];
+    pool.forEach(q => {
+        const m = state.mastery[q.id] || { correct: 0, wrong: 0, streak: 0 };
+        let weight = 3;
+        if (m.correct === 0) weight = 6; // High priority for unseen theory
+        weight += m.wrong * 4;
+        weight = Math.max(1, weight - m.streak * 2);
+        for (let i = 0; i < weight; i++) weighted.push(q);
+    });
+    return weighted[Math.floor(Math.random() * weighted.length)] || QUESTIONS_DB[0];
+}
+
+function computeGlobalMasteryPct() {
+    let masteredCount = 0;
+    QUESTIONS_DB.forEach(q => {
+        const m = state.mastery[q.id];
+        if (m && m.correct > 0) {
+            masteredCount += Math.min(1, m.streak / 2);
+        }
+    });
+    return Math.min(100, Math.round((masteredCount / QUESTIONS_DB.length) * 100));
+}
+
+function computeDayMasteryPct(dayNum) {
+    const dayQs = QUESTIONS_DB.filter(q => q.day === dayNum);
+    if (!dayQs.length) return 0;
+    let pts = 0;
+    dayQs.forEach(q => {
+        const m = state.mastery[q.id];
+        if (m && m.correct > 0) pts += Math.min(1, m.streak / 2);
+    });
+    return Math.min(100, Math.round((pts / dayQs.length) * 100));
+}
+
+function addRewards(coins, xp) {
+    const mult = state.ownedItems.includes("upgrade_multiplier") ? 1.5 : 1;
+    const finalCoins = Math.round(coins * mult);
+    state.coins += finalCoins;
+    state.xp += xp;
+
+    const newLevel = Math.floor(state.xp / 200) + 1;
+    if (newLevel > state.level) {
+        state.level = newLevel;
+        playSound("clear");
+        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 3, "#fbbf24", 40);
+        showToast(`🎉 NIVEAU ${state.level} ATTEINT ! +50 Pièces Bonus !`, "fa-crown");
+        state.coins += 50;
+    }
+    saveState();
+}
+
+function updateMissionProgress(missionId, amount) {
+    const m = state.missions.find(x => x.id === missionId);
+    if (!m || m.claimed) return;
+    m.progress = Math.min(m.goal, m.progress + amount);
+    if (m.progress >= m.goal && !m.claimed) {
+        m.claimed = true;
+        addRewards(m.reward, 60);
+        showToast(`✅ Mission accomplie : +${m.reward} Pièces !`, "fa-trophy");
+    }
+}
+
+/**
+ * ============================================================================
+ * 5. RENDU DU TABLEAU DE BORD & NAVIGATION
+ * ============================================================================
+ */
+const RANKS = ["Novice des Ensembles", "Apprenti Logique", "Maître de De Morgan", "Architecte de Pascal", "Explorateur d'Images", "Seigneur des Bijections"];
+
+function updateAllUI() {
+    // Top HUD
+    document.getElementById("hud-level").textContent = state.level;
+    document.getElementById("hud-rank").textContent = RANKS[Math.min(RANKS.length - 1, Math.floor((state.level - 1) / 2))];
+    const xpInLevel = state.xp % 200;
+    document.getElementById("hud-xp-bar").style.width = `${(xpInLevel / 200) * 100}%`;
+    document.getElementById("hud-streak").textContent = `${state.streak}j`;
+    document.getElementById("hud-coins").textContent = state.coins;
+    document.getElementById("shop-coins-display").textContent = state.coins;
+
+    // Home Mastery
+    const globalPct = computeGlobalMasteryPct();
+    document.getElementById("home-mastery-pct").textContent = `${globalPct}%`;
+    document.getElementById("home-mastery-bar").style.width = `${Math.max(4, globalPct)}%`;
+    document.getElementById("home-blast-best").textContent = state.blastBest;
+    document.getElementById("home-diver-best").textContent = `${state.diverBest}m`;
+    document.getElementById("blast-best").textContent = state.blastBest;
+
+    // Target course badge
+    const badge = document.getElementById("active-day-badge");
+    const title = document.getElementById("active-day-title");
+    if (state.targetCourse === 0) {
+        badge.textContent = "IA";
+        title.textContent = "Tous les 6 Cours (Révision Intelligente)";
+    } else {
+        badge.textContent = `C${state.targetCourse}`;
+        const sheet = CODEX_SHEETS.find(s => s.course === state.targetCourse);
+        title.textContent = sheet ? sheet.title : `Cours ${state.targetCourse}`;
+    }
+
+    renderDailyMissions();
+    renderRoadmap();
+    renderShop();
+}
+
+function cycleTargetCourse() {
+    playSound("pop");
+    state.targetCourse = (state.targetCourse + 1) % 7;
+    saveState();
+    showToast(state.targetCourse === 0 ? "Mode IA : Tous les cours activés" : `Cible : Cours ${state.targetCourse} sélectionné !`, "fa-crosshairs");
+}
+
+function selectCourseFromRoadmap(courseNum, dayNum) {
+    playSound("pop");
+    state.targetCourse = courseNum;
+    saveState();
+    openQuizModal("training", pickSmartQuestion());
+}
+
+function renderDailyMissions() {
+    const container = document.getElementById("daily-missions-list");
+    container.innerHTML = state.missions.map(m => {
+        const pct = Math.round((m.progress / m.goal) * 100);
+        return `
+            <div class="p-2.5 rounded-2xl bg-slate-950/80 border ${m.claimed ? 'border-emerald-500/40' : 'border-slate-800'} flex items-center justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="${m.claimed ? 'text-emerald-300 line-through' : 'text-slate-200'} truncate">${m.title}</span>
+                        <span class="text-[10px] math-font text-slate-400 ml-2">${m.progress}/${m.goal}</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden mt-1">
+                        <div class="h-full ${m.claimed ? 'bg-emerald-400' : 'bg-cyan-400'} transition-all duration-300" style="width:${pct}%"></div>
+                    </div>
+                </div>
+                <div class="px-2 py-1 rounded-xl ${m.claimed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'} text-[10px] font-black math-font shrink-0">
+                    ${m.claimed ? '<i class="fa-solid fa-check"></i> REÇU' : `+${m.reward} <i class="fa-solid fa-coins"></i>`}
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function renderRoadmap() {
+    const container = document.getElementById("roadmap-list");
+    container.innerHTML = DAYS_ROADMAP.map(d => {
+        const pct = computeDayMasteryPct(d.day);
+        const isActive = state.targetCourse === d.course;
+        return `
+            <div onclick="selectCourseFromRoadmap(${d.course}, ${d.day})" class="btn-juicy cursor-pointer p-2.5 rounded-2xl ${isActive ? 'bg-cyan-950/60 border-cyan-400/50' : 'bg-slate-950/70 border-slate-800/90'} border flex items-center justify-between gap-2.5">
+                <div class="w-9 h-9 rounded-xl ${pct >= 100 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-cyan-300'} font-black text-xs flex flex-col items-center justify-center shrink-0">
+                    <span>J${d.day}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold text-white truncate">${d.title}</span>
+                        <span class="text-[10px] font-bold ${pct >= 100 ? 'text-emerald-400' : 'text-cyan-300'} math-font ml-1">${pct}%</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">${d.desc}</div>
+                </div>
+                <i class="fa-solid fa-play text-xs text-cyan-400 shrink-0 mr-1"></i>
+            </div>
+        `;
+    }).join("");
+}
+
+function switchTab(tabName) {
+    playSound("pop");
+    ["home", "blast", "diver", "codex", "shop"].forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (t === tabName) {
+            sec.classList.remove("hidden");
+            nav.className = "btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-cyan-400 bg-cyan-500/10";
+        } else {
+            sec.classList.add("hidden");
+            nav.className = "btn-juicy flex flex-col items-center justify-center py-1.5 rounded-2xl text-slate-400";
+        }
+    });
+
+    if (tabName === "blast") {
+        if (!blastState.initialized) initBlastGame();
+    }
+    if (tabName === "diver") {
+        resizeDiverCanvas();
+        drawDiverIdlePreview();
+    } else {
+        diverState.running = false;
+    }
+    if (tabName === "codex") {
+        renderCodex();
+        renderPascalTriangle();
+    }
+}
+
+/**
+ * ============================================================================
+ * 6. MOTEUR DE QUIZ INTERACTIF, FORGE DE FORMULES & MODE BLITZ 60S
+ * ============================================================================
+ */
+let quizContext = {
+    mode: "training", // "training", "blast_boost", "diver_o2", "blitz"
+    currentQ: null,
+    isForge: false,
+    builtTokens: [],
+    blitzTimeLeft: 60,
+    blitzScore: 0,
+    blitzTimerId: null,
+    onSuccessCallback: null
+};
+
+function openQuizModal(mode, questionObj, onSuccess = null) {
+    quizContext.mode = mode;
+    quizContext.currentQ = questionObj || pickSmartQuestion();
+    quizContext.onSuccessCallback = onSuccess;
+    quizContext.builtTokens = [];
+
+    const q = quizContext.currentQ;
+    // Use Formula Forge 45% of the time when the question has forgeTokens
+    quizContext.isForge = Boolean(q.forgeTokens && Math.random() < 0.45);
+
+    document.getElementById("quiz-modal").classList.remove("hidden");
+    document.getElementById("qm-feedback").classList.add("hidden");
+    document.getElementById("qm-footer").classList.add("hidden");
+    document.getElementById("qm-badge").textContent = `COURS ${q.course} • JOUR ${q.day}`;
+
+    const modeLabels = {
+        training: "🧠 Entraînement Ciblé",
+        blast_boost: "⚡ Surcharge Block Blast",
+        diver_o2: "🤿 Valve d'Oxygène O₂",
+        blitz: `🔥 Blitz Chrono (${quizContext.blitzScore} pts)`
+    };
+    document.getElementById("qm-mode-tag").textContent = modeLabels[mode] || "Défi";
+
+    const timerPill = document.getElementById("qm-timer-pill");
+    if (mode === "blitz") {
+        timerPill.classList.remove("hidden");
+        timerPill.textContent = `${quizContext.blitzTimeLeft}s`;
+    } else {
+        timerPill.classList.add("hidden");
+    }
+
+    document.getElementById("qm-question").textContent = q.q;
+
+    const forgeArea = document.getElementById("qm-forge-area");
+    const optionsArea = document.getElementById("qm-options");
+
+    if (quizContext.isForge) {
+        forgeArea.classList.remove("hidden");
+        optionsArea.classList.add("hidden");
+        renderForgeTokens();
+    } else {
+        forgeArea.classList.add("hidden");
+        optionsArea.classList.remove("hidden");
+        renderMcqOptions();
+    }
+}
+
+function renderForgeTokens() {
+    const q = quizContext.currentQ;
+    const slotsEl = document.getElementById("qm-forge-slots");
+    const bankEl = document.getElementById("qm-forge-bank");
+
+    slotsEl.innerHTML = quizContext.builtTokens.length
+        ? quizContext.builtTokens.map((t, idx) => `
+            <span onclick="removeForgeToken(${idx})" class="cursor-pointer px-2.5 py-1 rounded-xl bg-cyan-500/20 border border-cyan-400 text-cyan-200 font-bold text-xs animate-pop">
+                ${t}
+            </span>
+        `).join("")
+        : `<span class="text-xs text-slate-500 italic">Touche les blocs ci-dessous pour construire la formule...</span>`;
+
+    if (!q._shuffledBank) {
+        const all = [...q.forgeTokens, ...(q.forgeDistractors || [])];
+        q._shuffledBank = all.sort(() => Math.random() - 0.5);
+    }
+
+    bankEl.innerHTML = q._shuffledBank.map((token, i) => `
+        <button onclick="addForgeToken(${i})" class="btn-juicy px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white math-font text-xs font-bold">
+            ${token}
+        </button>
+    `).join("");
+}
+
+function addForgeToken(idx) {
+    playSound("pop");
+    const token = quizContext.currentQ._shuffledBank[idx];
+    quizContext.builtTokens.push(token);
+    renderForgeTokens();
+}
+
+function removeForgeToken(idx) {
+    playSound("pop");
+    quizContext.builtTokens.splice(idx, 1);
+    renderForgeTokens();
+}
+
+function clearForgeTokens() {
+    playSound("pop");
+    quizContext.builtTokens = [];
+    renderForgeTokens();
+}
+
+function submitForgeAnswer() {
+    const q = quizContext.currentQ;
+    const expected = q.forgeTokens.join(" ");
+    const actual = quizContext.builtTokens.join(" ");
+    handleQuizResult(expected === actual);
+}
+
+function renderMcqOptions() {
+    const q = quizContext.currentQ;
+    const indices = q.options.map((_, i) => i).sort(() => Math.random() - 0.5);
+    const optionsArea = document.getElementById("qm-options");
+    optionsArea.innerHTML = indices.map(origIdx => `
+        <button onclick="selectMcqOption(${origIdx}, this)" class="btn-juicy w-full text-left p-3 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-xs sm:text-sm font-semibold text-slate-100 math-font flex items-center justify-between gap-2">
+            <span>${q.options[origIdx]}</span>
+            <i class="fa-regular fa-circle text-slate-500 shrink-0"></i>
+        </button>
+    `).join("");
+}
+
+function selectMcqOption(selectedIdx, btnEl) {
+    const q = quizContext.currentQ;
+    const isCorrect = selectedIdx === q.ans;
+    // Disable further clicks
+    const allBtns = document.querySelectorAll("#qm-options button");
+    allBtns.forEach(b => b.disabled = true);
+
+    if (isCorrect) {
+        btnEl.className = "w-full text-left p-3 rounded-2xl bg-emerald-950/90 border-2 border-emerald-400 text-xs sm:text-sm font-bold text-emerald-200 math-font flex items-center justify-between gap-2";
+    } else {
+        btnEl.className = "w-full text-left p-3 rounded-2xl bg-rose-950/90 border-2 border-rose-500 text-xs sm:text-sm font-bold text-rose-200 math-font flex items-center justify-between gap-2";
+    }
+    handleQuizResult(isCorrect);
+}
+
+function handleQuizResult(isCorrect) {
+    const q = quizContext.currentQ;
+    delete q._shuffledBank;
+
+    if (!state.mastery[q.id]) state.mastery[q.id] = { correct: 0, wrong: 0, streak: 0 };
+    const m = state.mastery[q.id];
+
+    const fbBox = document.getElementById("qm-feedback");
+    const fbTitle = document.getElementById("qm-feedback-title");
+    const fbLogic = document.getElementById("qm-feedback-logic");
+    const fbMnemonic = document.getElementById("qm-feedback-mnemonic");
+
+    fbBox.classList.remove("hidden");
+    document.getElementById("qm-footer").classList.remove("hidden");
+
+    if (isCorrect) {
+        playSound("win");
+        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, "#10b981", 28);
+        m.correct += 1;
+        m.streak += 1;
+        updateMissionProgress("m_quiz", 1);
+        addRewards(25, 35);
+
+        fbTitle.className = "text-xs font-black uppercase text-emerald-400";
+        fbTitle.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> EXACT ! +25 Pièces & +35 XP`;
+        if (quizContext.onSuccessCallback) {
+            quizContext.onSuccessCallback();
+            quizContext.onSuccessCallback = null;
+        }
+        if (quizContext.mode === "blitz") {
+            quizContext.blitzScore += 100;
+            addRewards(15, 15);
+        }
+    } else {
+        playSound("error");
+        triggerScreenShake();
+        m.wrong += 1;
+        m.streak = 0;
+
+        fbTitle.className = "text-xs font-black uppercase text-rose-400";
+        fbTitle.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> PAS TOUT À FAIT ! Bonne réponse : ${q.options[q.ans]}`;
+    }
+
+    fbLogic.textContent = q.logic;
+    fbMnemonic.innerHTML = `<i class="fa-solid fa-lightbulb mr-1"></i> <strong>Astuce :</strong> ${q.mnemonic}`;
+    saveState();
+}
+
+function nextOrCloseQuiz() {
+    playSound("pop");
+    if (quizContext.mode === "blitz" && quizContext.blitzTimeLeft > 0) {
+        openQuizModal("blitz", pickSmartQuestion());
+    } else if (quizContext.mode === "training") {
+        openQuizModal("training", pickSmartQuestion());
+    } else {
+        closeQuizModal();
+    }
+}
+
+function closeQuizModal() {
+    document.getElementById("quiz-modal").classList.add("hidden");
+    if (quizContext.blitzTimerId) {
+        clearInterval(quizContext.blitzTimerId);
+        quizContext.blitzTimerId = null;
+    }
+}
+
+function startBlitzMode() {
+    playSound("clear");
+    quizContext.blitzTimeLeft = 60;
+    quizContext.blitzScore = 0;
+    openQuizModal("blitz", pickSmartQuestion());
+
+    if (quizContext.blitzTimerId) clearInterval(quizContext.blitzTimerId);
+    quizContext.blitzTimerId = setInterval(() => {
+        quizContext.blitzTimeLeft -= 1;
+        const pill = document.getElementById("qm-timer-pill");
+        if (pill) pill.textContent = `${quizContext.blitzTimeLeft}s`;
+        if (quizContext.blitzTimeLeft <= 0) {
+            clearInterval(quizContext.blitzTimerId);
+            quizContext.blitzTimerId = null;
+            playSound("clear");
+            showToast(`⚡ Fin du Blitz ! Score : ${quizContext.blitzScore} pts !`, "fa-bolt");
+            closeQuizModal();
+        }
+    }, 1000);
+}
+
+/**
+ * ============================================================================
+ * 7. MINI-JEU 1 : BLOCK BLAST LOGIQUE (GRILLE 8x8 + BLOCS MATHÉMATIQUES)
+ * ============================================================================
+ */
+const SHAPES = [
+    { matrix: [[1]], color: "#fbbf24" }, // 1x1 Dot
+    { matrix: [[1, 1]], color: "#38bdf8" }, // 1x2
+    { matrix: [[1], [1]], color: "#38bdf8" }, // 2x1
+    { matrix: [[1, 1, 1]], color: "#a855f7" }, // 1x3
+    { matrix: [[1], [1], [1]], color: "#a855f7" }, // 3x1
+    { matrix: [[1, 1], [1, 1]], color: "#f43f5e" }, // 2x2 Square
+    { matrix: [[1, 0], [1, 1]], color: "#10b981" }, // Small L
+    { matrix: [[0, 1], [1, 1]], color: "#10b981" },
+    { matrix: [[1, 1, 1], [0, 1, 0]], color: "#f97316" }, // T shape
+    { matrix: [[1, 1, 1, 1]], color: "#06b6d4" } // 1x4
+];
+
+const THEOREMS_TICKER = [
+    "∀y∈F, ∃x∈E, y=f(x) ⇔ f est surjective",
+    "f(x)=f(x') ⇒ x=x' ⇔ f est injective",
+    "∁_E(A ∩ B) = ∁_E(A) ∪ ∁_E(B) (De Morgan)",
+    "C(n,k) = C(n-1,k) + C(n-1,k-1) (Pascal)",
+    "∀y∈F, Card(f⁻¹({y})) = 1 ⇔ Bijection",
+    "(x+y)ⁿ = ∑ C(n,k) xⁿ⁻ᵏ yᵏ (Binôme)",
+    "Négation de (P ⇒ Q) : P et (non Q)",
+    "Contraposée de (P ⇒ Q) : (non Q) ⇒ (non P)"
+];
+
+let blastState = {
+    initialized: false,
+    grid: Array.from({ length: 8 }, () => Array(8).fill(null)),
+    score: 0,
+    combo: 1,
+    dock: [null, null, null],
+    selectedDockIdx: 0
+};
+
+function initBlastGame() {
+    blastState.initialized = true;
+    blastState.grid = Array.from({ length: 8 }, () => Array(8).fill(null));
+    blastState.score = 0;
+    blastState.combo = 1;
+    spawnDockPieces();
+    renderBlastGrid();
+    renderBlastDock();
+}
+
+function resetBlastGame() {
+    playSound("pop");
+    initBlastGame();
+    showToast("Nouvelle grille Block Blast prête !", "fa-cubes-stacked");
+}
+
+function spawnDockPieces() {
+    const isEmerald = state.ownedItems.includes("theme_emerald");
+    for (let i = 0; i < 3; i++) {
+        const template = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        const isMathCharged = (i === 1); // Middle piece carries a Math Bonus Rune
+        blastState.dock[i] = {
+            matrix: template.matrix,
+            color: isEmerald ? "#10b981" : template.color,
+            isMath: isMathCharged,
+            used: false
+        };
+    }
+    // Select first available piece
+    blastState.selectedDockIdx = 0;
+}
+
+function renderBlastGrid() {
+    const gridEl = document.getElementById("blast-grid");
+    gridEl.innerHTML = "";
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const cellColor = blastState.grid[r][c];
+            const div = document.createElement("div");
+            div.className = `blast-cell cursor-pointer ${cellColor ? 'filled' : ''}`;
+            if (cellColor) {
+                div.style.backgroundColor = cellColor;
+            }
+            div.onpointerenter = () => previewBlastPlacement(r, c);
+            div.onclick = () => placeBlastPiece(r, c);
+            div.dataset.r = r;
+            div.dataset.c = c;
+            gridEl.appendChild(div);
+        }
+    }
+    document.getElementById("blast-score").textContent = blastState.score;
+    document.getElementById("blast-combo-badge").textContent = `Combo x${blastState.combo}`;
+}
+
+function renderBlastDock() {
+    const dockEl = document.getElementById("blast-dock");
+    dockEl.innerHTML = blastState.dock.map((piece, idx) => {
+        if (!piece || piece.used) {
+            return `<div class="w-20 h-16 rounded-xl border border-slate-800/50 flex items-center justify-center text-slate-700 text-xs">Posé</div>`;
+        }
+        const isSelected = blastState.selectedDockIdx === idx;
+        const rows = piece.matrix.length;
+        const cols = piece.matrix[0].length;
+        let miniCells = "";
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const on = piece.matrix[r][c];
+                miniCells += `<div class="w-3.5 h-3.5 rounded-[3px]" style="background:${on ? piece.color : 'transparent'}; border:${on ? '1px solid rgba(255,255,255,0.4)' : 'none'}"></div>`;
+            }
+        }
+        return `
+            <button onclick="selectDockPiece(${idx})" class="btn-juicy relative p-2 rounded-2xl border-2 ${isSelected ? 'border-cyan-400 bg-cyan-950/50 scale-105' : 'border-slate-800 bg-slate-950/60'} flex flex-col items-center justify-center h-full w-full">
+                ${piece.isMath ? '<span class="absolute -top-2 -right-1 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] shadow">🧠 +OR</span>' : ''}
+                <div class="grid gap-0.5" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
+                    ${miniCells}
+                </div>
+            </button>
+        `;
+    }).join("");
+}
+
+function selectDockPiece(idx) {
+    if (!blastState.dock[idx] || blastState.dock[idx].used) return;
+    playSound("pop");
+    blastState.selectedDockIdx = idx;
+    renderBlastDock();
+}
+
+function canPlacePiece(piece, startR, startC) {
+    if (!piece || piece.used) return false;
+    const rows = piece.matrix.length;
+    const cols = piece.matrix[0].length;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (piece.matrix[r][c]) {
+                const nr = startR + r;
+                const nc = startC + c;
+                if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) return false;
+                if (blastState.grid[nr][nc] !== null) return false;
+            }
+        }
+    }
+    return true;
+}
+
+function previewBlastPlacement(startR, startC) {
+    const allCells = document.querySelectorAll("#blast-grid .blast-cell");
+    allCells.forEach(el => el.classList.remove("preview-ok"));
+
+    const piece = blastState.dock[blastState.selectedDockIdx];
+    if (!canPlacePiece(piece, startR, startC)) return;
+
+    const rows = piece.matrix.length;
+    const cols = piece.matrix[0].length;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (piece.matrix[r][c]) {
+                const cell = document.querySelector(`#blast-grid .blast-cell[data-r="${startR+r}"][data-c="${startC+c}"]`);
+                if (cell) cell.classList.add("preview-ok");
+            }
+        }
+    }
+}
+
+function placeBlastPiece(startR, startC) {
+    const piece = blastState.dock[blastState.selectedDockIdx];
+    if (!canPlacePiece(piece, startR, startC)) {
+        playSound("error");
+        return;
+    }
+
+    playSound("pop");
+    const rows = piece.matrix.length;
+    const cols = piece.matrix[0].length;
+    let placedCells = 0;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (piece.matrix[r][c]) {
+                blastState.grid[startR + r][startC + c] = piece.color;
+                placedCells++;
+            }
+        }
+    }
+
+    piece.used = true;
+    blastState.score += placedCells * 10 * blastState.combo;
+    updateMissionProgress("m_blast", 1);
+
+    // Check full rows and columns
+    const fullRows = [];
+    const fullCols = [];
+    for (let r = 0; r < 8; r++) {
+        if (blastState.grid[r].every(cell => cell !== null)) fullRows.push(r);
+    }
+    for (let c = 0; c < 8; c++) {
+        let colFull = true;
+        for (let r = 0; r < 8; r++) {
+            if (blastState.grid[r][c] === null) colFull = false;
+        }
+        if (colFull) fullCols.push(c);
+    }
+
+    const linesCleared = fullRows.length + fullCols.length;
+    if (linesCleared > 0) {
+        playSound("clear");
+        blastState.combo += linesCleared;
+        blastState.score += linesCleared * 150 * blastState.combo;
+        addRewards(linesCleared * 20, linesCleared * 25);
+
+        fullRows.forEach(r => {
+            for (let c = 0; c < 8; c++) blastState.grid[r][c] = null;
+        });
+        fullCols.forEach(c => {
+            for (let r = 0; r < 8; r++) blastState.grid[r][c] = null;
+        });
+
+        spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, "#f43f5e", 35);
+        document.getElementById("blast-theorem-hint").textContent = THEOREMS_TICKER[Math.floor(Math.random() * THEOREMS_TICKER.length)];
+        showToast(`💥 ${linesCleared} Ligne(s) complétée(s) ! Combo x${blastState.combo}`, "fa-fire");
+    } else {
+        blastState.combo = 1;
+    }
+
+    if (blastState.score > state.blastBest) {
+        state.blastBest = blastState.score;
+    }
+
+    // Select next unused piece or respawn dock
+    const nextIdx = blastState.dock.findIndex(p => p && !p.used);
+    if (nextIdx === -1) {
+        spawnDockPieces();
+    } else {
+        blastState.selectedDockIdx = nextIdx;
+    }
+
+    renderBlastGrid();
+    renderBlastDock();
+    saveState();
+
+    // If piece was a Math Charged block, pop a quick reward quiz!
+    if (piece.isMath) {
+        setTimeout(() => {
+            openQuizModal("blast_boost", pickSmartQuestion(), () => {
+                blastState.score += 250;
+                if (blastState.score > state.blastBest) state.blastBest = blastState.score;
+                renderBlastGrid();
+                showToast("🧠 Bonus Mathématique : +250 Points !", "fa-wand-magic-sparkles");
+            });
+        }, 260);
+    }
+}
+
+function triggerBlastMathBoost() {
+    playSound("pop");
+    openQuizModal("blast_boost", pickSmartQuestion(), () => {
+        // Clear 3 random filled cells & give golden 1x1 omni blocks!
+        for (let r = 2; r <= 5; r++) {
+            for (let c = 2; c <= 5; c++) {
+                blastState.grid[r][c] = null;
+            }
+        }
+        blastState.dock = [
+            { matrix: [[1]], color: "#fbbf24", isMath: false, used: false },
+            { matrix: [[1]], color: "#fbbf24", isMath: false, used: false },
+            { matrix: [[1, 1]], color: "#38bdf8", isMath: true, used: false }
+        ];
+        blastState.selectedDockIdx = 0;
+        renderBlastGrid();
+        renderBlastDock();
+        showToast("✨ Centre de la grille nettoyé + Blocs Joker 1x1 dorés !", "fa-star");
+    });
+}
+
+/**
+ * ============================================================================
+ * 8. MINI-JEU 2 : ABYSS DIVER (LE SCAPHANDRIER EN CUIVRE & OXYGÈNE)
+ * ============================================================================
+ */
+const diverCanvas = document.getElementById("diver-canvas");
+const diverCtx = diverCanvas.getContext("2d");
+
+let diverState = {
+    running: false,
+    x: 160,
+    y: 95,
+    vx: 0,
+    dir: 0,
+    depth: 0,
+    o2: 100,
+    maxO2: 100,
+    bubbles: [],
+    coins: [],
+    seaParticles: [],
+    gate: null,
+    currentQ: null,
+    correctSide: 0 // 0 = Left, 1 = Right
+};
+
+function resizeDiverCanvas() {
+    const parent = diverCanvas.parentElement;
+    if (parent && parent.clientWidth > 0) {
+        diverCanvas.width = parent.clientWidth;
+        diverCanvas.height = parent.clientHeight;
+        diverState.x = diverCanvas.width / 2;
+    }
+}
+window.addEventListener("resize", resizeDiverCanvas);
+
+function setDiverDir(d) {
+    diverState.dir = d;
+}
+
+// Keyboard support for desktop testing
+window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "a") diverState.dir = -1;
+    if (e.key === "ArrowRight" || e.key === "d") diverState.dir = 1;
+});
+window.addEventListener("keyup", (e) => {
+    if (["ArrowLeft", "ArrowRight", "a", "d"].includes(e.key)) diverState.dir = 0;
+});
+
+function spawnDiverGate() {
+    const q = pickSmartQuestion();
+    diverState.currentQ = q;
+    diverState.correctSide = Math.random() < 0.5 ? 0 : 1;
+    const wrongOption = q.options.find((_, idx) => idx !== q.ans) || "∅";
+    const rightOption = q.options[q.ans];
+
+    document.getElementById("diver-gate-label").textContent = `PORTE À ${Math.floor(diverState.depth + 45)}m • COURS ${q.course}`;
+    document.getElementById("diver-gate-question").textContent = q.q;
+
+    diverState.gate = {
+        y: diverCanvas.height + 60,
+        leftText: diverState.correctSide === 0 ? rightOption : wrongOption,
+        rightText: diverState.correctSide === 1 ? rightOption : wrongOption,
+        passed: false
+    };
+}
+
+function startDiverGame() {
+    playSound("bubble");
+    resizeDiverCanvas();
+    document.getElementById("diver-overlay").classList.add("hidden");
+
+    const hasGoldSuit = state.ownedItems.includes("suit_gold");
+    diverState.maxO2 = hasGoldSuit ? 125 : 100;
+    diverState.o2 = diverState.maxO2;
+    diverState.depth = 0;
+    diverState.x = diverCanvas.width / 2;
+    diverState.vx = 0;
+    diverState.dir = 0;
+    diverState.bubbles = [];
+    diverState.coins = [];
+    diverState.seaParticles = Array.from({ length: 25 }, () => ({
+        x: Math.random() * diverCanvas.width,
+        y: Math.random() * diverCanvas.height,
+        r: 1 + Math.random() * 2.5,
+        speed: 0.8 + Math.random() * 1.8
+    }));
+    diverState.running = true;
+    spawnDiverGate();
+    requestAnimationFrame(diverGameLoop);
+}
+
+function triggerDiverEmergencyO2() {
+    if (!diverState.running) return;
+    diverState.running = false;
+    openQuizModal("diver_o2", pickSmartQuestion(), () => {
+        diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 45);
+        showToast("🤿 +45% Oxygène rechargé !", "fa-lungs");
+    });
+    // Resume when modal closes
+    const checkResume = setInterval(() => {
+        if (document.getElementById("quiz-modal").classList.contains("hidden")) {
+            clearInterval(checkResume);
+            if (!document.getElementById("tab-diver").classList.contains("hidden") && diverState.o2 > 0) {
+                diverState.running = true;
+                requestAnimationFrame(diverGameLoop);
+            }
+        }
+    }, 200);
+}
+
+function drawCopperDiver(ctx, x, y, tilt) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt * 0.15);
+
+    const isNeon = state.ownedItems.includes("suit_neon");
+    const isGold = state.ownedItems.includes("suit_gold");
+    const helmetColor = isNeon ? "#06b6d4" : (isGold ? "#fbbf24" : "#d97706");
+    const rimColor = isNeon ? "#67e8f9" : (isGold ? "#fef08a" : "#f59e0b");
+
+    // Air Hose trailing up
+    ctx.strokeStyle = "#475569";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, -22);
+    ctx.quadraticCurveTo(-12, -55, -4, -95);
+    ctx.stroke();
+
+    // Flashlight beam downwards
+    const grad = ctx.createLinearGradient(0, 15, 0, 130);
+    grad.addColorStop(0, isNeon ? "rgba(34, 211, 238, 0.35)" : "rgba(251, 191, 36, 0.28)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(-10, 10);
+    ctx.lineTo(-55, 130);
+    ctx.lineTo(55, 130);
+    ctx.lineTo(10, 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Diver Canvas Suit Body & Lead Boots
+    ctx.fillStyle = "#334155";
+    ctx.beginPath();
+    ctx.roundRect(-14, 6, 28, 24, 8);
+    ctx.fill();
+
+    // Copper Shoulder Breastplate
+    ctx.fillStyle = helmetColor;
+    ctx.beginPath();
+    ctx.roundRect(-17, 2, 34, 10, 5);
+    ctx.fill();
+
+    // Vintage Copper Scaphandre Helmet Dome
+    ctx.fillStyle = helmetColor;
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, -8, 17, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Helmet Rivets
+    ctx.fillStyle = rimColor;
+    [-11, -5, 0, 5, 11].forEach(rx => {
+        ctx.beginPath();
+        ctx.arc(rx, 5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Glass Viewport with Cyan Glow
+    ctx.fillStyle = "#0ea5e9";
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, -9, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Viewport Glint & Crossbars
+    ctx.strokeStyle = "rgba(255,255,255,0.6)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-6, -9);
+    ctx.lineTo(6, -9);
+    ctx.moveTo(0, -15);
+    ctx.lineTo(0, -3);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function diverGameLoop() {
+    if (!diverState.running) return;
+
+    const w = diverCanvas.width;
+    const h = diverCanvas.height;
+
+    // Update depth and O2
+    diverState.depth += 0.22;
+    diverState.o2 -= 0.095;
+
+    // Horizontal movement
+    diverState.vx = diverState.vx * 0.82 + diverState.dir * 1.35;
+    diverState.x = Math.max(28, Math.min(w - 28, diverState.x + diverState.vx));
+
+    // Spawn O2 bubbles & Gold coins
+    if (Math.random() < 0.04) {
+        diverState.bubbles.push({
+            x: 25 + Math.random() * (w - 50),
+            y: h + 20,
+            r: 9 + Math.random() * 5
+        });
+    }
+    if (Math.random() < 0.03) {
+        diverState.coins.push({
+            x: 25 + Math.random() * (w - 50),
+            y: h + 20,
+            r: 8
+        });
+    }
+
+    // Clear & Draw Deep Ocean Gradient
+    const depthRatio = Math.min(1, diverState.depth / 600);
+    const bgGrad = diverCtx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, depthRatio < 0.5 ? "#082f49" : "#020617");
+    bgGrad.addColorStop(1, "#020617");
+    diverCtx.fillStyle = bgGrad;
+    diverCtx.fillRect(0, 0, w, h);
+
+    // Draw rising plankton particles
+    diverCtx.fillStyle = "rgba(103, 232, 249, 0.25)";
+    diverState.seaParticles.forEach(p => {
+        p.y -= p.speed;
+        if (p.y < 0) {
+            p.y = h;
+            p.x = Math.random() * w;
+        }
+        diverCtx.beginPath();
+        diverCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        diverCtx.fill();
+    });
+
+    // Update & Draw O2 Bubbles
+    const hasMagnet = state.ownedItems.includes("suit_neon");
+    for (let i = diverState.bubbles.length - 1; i >= 0; i--) {
+        const b = diverState.bubbles[i];
+        b.y -= 2.3;
+        if (hasMagnet) {
+            b.x += (diverState.x - b.x) * 0.03;
+        }
+        // Collision with Diver
+        if (Math.hypot(b.x - diverState.x, b.y - diverState.y) < b.r + 22) {
+            playSound("bubble");
+            diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 12);
+            diverState.bubbles.splice(i, 1);
+            continue;
+        }
+        if (b.y < -20) {
+            diverState.bubbles.splice(i, 1);
+            continue;
+        }
+        diverCtx.strokeStyle = "#38bdf8";
+        diverCtx.fillStyle = "rgba(56, 189, 248, 0.25)";
+        diverCtx.lineWidth = 2;
+        diverCtx.beginPath();
+        diverCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        diverCtx.fill();
+        diverCtx.stroke();
+        diverCtx.fillStyle = "#fff";
+        diverCtx.font = "bold 8px sans-serif";
+        diverCtx.textAlign = "center";
+        diverCtx.fillText("O₂", b.x, b.y + 3);
+    }
+
+    // Update & Draw Abyssal Coins
+    for (let i = diverState.coins.length - 1; i >= 0; i--) {
+        const c = diverState.coins[i];
+        c.y -= 2.5;
+        if (hasMagnet) c.x += (diverState.x - c.x) * 0.035;
+        if (Math.hypot(c.x - diverState.x, c.y - diverState.y) < c.r + 22) {
+            playSound("pop");
+            addRewards(5, 5);
+            diverState.coins.splice(i, 1);
+            continue;
+        }
+        if (c.y < -20) {
+            diverState.coins.splice(i, 1);
+            continue;
+        }
+        diverCtx.fillStyle = "#fbbf24";
+        diverCtx.strokeStyle = "#fef08a";
+        diverCtx.lineWidth = 1.5;
+        diverCtx.beginPath();
+        diverCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        diverCtx.fill();
+        diverCtx.stroke();
+    }
+
+    // Update & Draw Math Airlock Gates
+    if (diverState.gate) {
+        const g = diverState.gate;
+        g.y -= 1.65;
+
+        const halfW = w / 2;
+        // Left Gate Box (Porte A)
+        diverCtx.fillStyle = "rgba(6, 182, 212, 0.22)";
+        diverCtx.strokeStyle = "#22d3ee";
+        diverCtx.lineWidth = 2;
+        diverCtx.beginPath();
+        diverCtx.roundRect(8, g.y - 26, halfW - 12, 52, 12);
+        diverCtx.fill();
+        diverCtx.stroke();
+
+        // Right Gate Box (Porte B)
+        diverCtx.fillStyle = "rgba(245, 158, 11, 0.22)";
+        diverCtx.strokeStyle = "#fbbf24";
+        diverCtx.beginPath();
+        diverCtx.roundRect(halfW + 4, g.y - 26, halfW - 12, 52, 12);
+        diverCtx.fill();
+        diverCtx.stroke();
+
+        // Gate Text Wrapping
+        diverCtx.fillStyle = "#ffffff";
+        diverCtx.font = "bold 11px 'JetBrains Mono', monospace";
+        diverCtx.textAlign = "center";
+        wrapCanvasText(diverCtx, g.leftText, halfW / 2 + 2, g.y - 4, halfW - 22, 13);
+        wrapCanvasText(diverCtx, g.rightText, halfW + halfW / 2 - 2, g.y - 4, halfW - 22, 13);
+
+        // Check Gate Passage
+        if (!g.passed && g.y <= diverState.y + 15 && g.y >= diverState.y - 15) {
+            g.passed = true;
+            const chosenSide = diverState.x < halfW ? 0 : 1;
+            const q = diverState.currentQ;
+            if (!state.mastery[q.id]) state.mastery[q.id] = { correct: 0, wrong: 0, streak: 0 };
+
+            if (chosenSide === diverState.correctSide) {
+                playSound("win");
+                diverState.o2 = Math.min(diverState.maxO2, diverState.o2 + 32);
+                state.mastery[q.id].correct += 1;
+                state.mastery[q.id].streak += 1;
+                addRewards(20, 25);
+                updateMissionProgress("m_quiz", 1);
+                spawnParticles(diverState.x, diverState.y + 120, "#10b981", 25);
+                showToast("✅ Porte Exacte ! +32% Oxygène & +20 Or !", "fa-check");
+            } else {
+                playSound("error");
+                triggerScreenShake();
+                const penalty = state.ownedItems.includes("upgrade_shield") ? 14 : 26;
+                diverState.o2 = Math.max(0, diverState.o2 - penalty);
+                state.mastery[q.id].wrong += 1;
+                state.mastery[q.id].streak = 0;
+                showToast(`❌ Fuite O₂ ! Réponse : ${q.options[q.ans]}`, "fa-triangle-exclamation");
+            }
+        }
+
+        if (g.y < -40) {
+            spawnDiverGate();
+        }
+    }
+
+    // Draw Copper Diver
+    drawCopperDiver(diverCtx, diverState.x, diverState.y, diverState.vx);
+
+    // Update Diver HUD
+    const depthInt = Math.floor(diverState.depth);
+    document.getElementById("diver-depth").textContent = `${depthInt}m`;
+    const o2Pct = Math.max(0, Math.round((diverState.o2 / diverState.maxO2) * 100));
+    document.getElementById("diver-o2-text").textContent = `${o2Pct}%`;
+    document.getElementById("diver-o2-bar").style.width = `${o2Pct}%`;
+
+    if (depthInt > state.diverBest) {
+        state.diverBest = depthInt;
+    }
+    updateMissionProgress("m_diver", 0.22);
+
+    // Check Oxygen Depletion
+    if (diverState.o2 <= 0) {
+        diverState.running = false;
+        playSound("error");
+        saveState();
+        document.getElementById("diver-overlay").classList.remove("hidden");
+        showToast(`🤿 Remontée d'urgence à ${depthInt}m !`, "fa-anchor");
+        return;
+    }
+
+    requestAnimationFrame(diverGameLoop);
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(" ");
+    let line = "";
+    const lines = [];
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+            lines.push(line);
+            line = words[n] + " ";
+        } else {
+            line = testLine;
+        }
+    }
+    lines.push(line);
+    const startY = y - ((lines.length - 1) * lineHeight) / 2;
+    lines.slice(0, 3).forEach((l, i) => {
+        ctx.fillText(l.trim(), x, startY + i * lineHeight);
+    });
+}
+
+function drawDiverIdlePreview() {
+    if (!diverCanvas.width) resizeDiverCanvas();
+    diverCtx.fillStyle = "#082f49";
+    diverCtx.fillRect(0, 0, diverCanvas.width, diverCanvas.height);
+    drawCopperDiver(diverCtx, diverCanvas.width / 2, 110, 0);
+}
+
+// Allow direct touch/drag on the Diver Canvas
+diverCanvas.addEventListener("pointermove", (e) => {
+    if (!diverState.running) return;
+    const rect = diverCanvas.getBoundingClientRect();
+    const targetX = e.clientX - rect.left;
+    diverState.x += (targetX - diverState.x) * 0.25;
+});
+
+/**
+ * ============================================================================
+ * 9. GRIMOIRE INTERACTIF (COURS 1 À 6), TRIANGLE DE PASCAL & BOUTIQUE
+ * ============================================================================
+ */
+let activeCodexFilter = 0; // 0 = All
+
+function renderCodex() {
+    const filterBar = document.getElementById("codex-filter-bar");
+    filterBar.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(c => `
+        <button onclick="setCodexFilter(${c})" class="btn-juicy px-3 py-1 rounded-full text-xs font-bold shrink-0 ${activeCodexFilter === c ? 'bg-cyan-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">
+            ${c === 0 ? 'Tous (1-6)' : `Cours ${c}`}
+        </button>
+    `).join("");
+
+    const sheets = activeCodexFilter === 0
+        ? CODEX_SHEETS
+        : CODEX_SHEETS.filter(s => s.course === activeCodexFilter);
+
+    const container = document.getElementById("codex-cards-container");
+    container.innerHTML = sheets.map(s => `
+        <div class="rounded-3xl p-3.5 bg-slate-900/95 border border-slate-800 space-y-2.5">
+            <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">${s.badge}</span>
+                <button onclick="selectCourseFromRoadmap(${s.course}, 1)" class="btn-juicy text-xs font-bold text-amber-300 hover:underline">
+                    Tester ce cours <i class="fa-solid fa-bolt"></i>
+                </button>
+            </div>
+            <h3 class="text-sm font-black text-white">${s.title}</h3>
+            <div class="space-y-2">
+                ${s.items.map(it => `
+                    <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800/90">
+                        <div class="text-xs font-extrabold text-cyan-300">${it.term}</div>
+                        <pre class="text-xs font-bold text-amber-300 math-font whitespace-pre-wrap mt-1 bg-slate-900/80 p-2 rounded-xl border border-slate-800">${it.formula}</pre>
+                        <div class="text-[11px] text-slate-300 mt-1.5 leading-relaxed">${it.explain}</div>
+                    </div>
+                `).join("")}
+            </div>
+        </div>
+    `).join("");
+}
+
+function setCodexFilter(c) {
+    playSound("pop");
+    activeCodexFilter = c;
+    renderCodex();
+}
+
+function factorial(n) {
+    let res = 1;
+    for (let i = 2; i <= n; i++) res *= i;
+    return res;
+}
+
+function comb(n, k) {
+    return Math.round(factorial(n) / (factorial(k) * factorial(n - k)));
+}
+
+function renderPascalTriangle() {
+    const container = document.getElementById("pascal-interactive");
+    let html = "";
+    for (let n = 0; n <= 6; n++) {
+        let rowHtml = `<div class="flex items-center gap-1">`;
+        rowHtml += `<span class="text-[9px] text-slate-500 math-font w-7 text-right mr-1">n=${n}</span>`;
+        for (let k = 0; k <= n; k++) {
+            const val = comb(n, k);
+            rowHtml += `
+                <button onclick="inspectPascalCell(${n}, ${k}, ${val})" class="btn-juicy w-7 h-7 rounded-lg bg-slate-800 hover:bg-cyan-500/30 border border-slate-700 text-[11px] font-bold text-amber-300 math-font flex items-center justify-center">
+                    ${val}
+                </button>
+            `;
+        }
+        rowHtml += `<span class="text-[9px] text-emerald-400 math-font ml-1">∑=${Math.pow(2, n)}</span></div>`;
+        html += rowHtml;
+    }
+    container.innerHTML = html;
+}
+
+function inspectPascalCell(n, k, val) {
+    playSound("pop");
+    const detail = document.getElementById("pascal-detail");
+    const parentInfo = (n > 0 && k > 0 && k < n)
+        ? ` = C(${n-1},${k}) + C(${n-1},${k-1}) = ${comb(n-1,k)} + ${comb(n-1,k-1)}`
+        : "";
+    detail.innerHTML = `<strong>C(${n}, ${k}) = ${val}</strong> = ${n}! / (${k}! × ${n-k}!)${parentInfo} • Terme binôme : <strong>${val} x<sup>${n-k}</sup> y<sup>${k}</sup></strong>`;
+}
+
+function renderShop() {
+    const grid = document.getElementById("shop-items-grid");
+    grid.innerHTML = SHOP_ITEMS.map(item => {
+        const owned = state.ownedItems.includes(item.id);
+        return `
+            <div class="p-3.5 rounded-3xl bg-slate-900/95 border ${owned ? 'border-emerald-500/40' : 'border-slate-800'} flex items-center justify-between gap-3">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0" style="background:${item.color}22; color:${item.color}; border:1px solid ${item.color}55">
+                    <i class="fa-solid ${item.icon}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-extrabold text-white">${item.name}</div>
+                    <div class="text-xs text-slate-400 leading-snug mt-0.5">${item.desc}</div>
+                </div>
+                <button onclick="buyShopItem('${item.id}')" ${owned ? 'disabled' : ''} class="btn-juicy px-3.5 py-2 rounded-2xl font-black text-xs math-font shrink-0 ${owned ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-md'}">
+                    ${owned ? '<i class="fa-solid fa-check"></i> ACQUIS' : `${item.cost} <i class="fa-solid fa-coins"></i>`}
+                </button>
+            </div>
+        `;
+    }).join("");
+}
+
+function buyShopItem(itemId) {
+    const item = SHOP_ITEMS.find(x => x.id === itemId);
+    if (!item || state.ownedItems.includes(itemId)) return;
+    if (state.coins < item.cost) {
+        playSound("error");
+        showToast("Pas assez de pièces ! Joue à Block Blast ou Plongée pour en gagner.", "fa-coins");
+        return;
+    }
+    playSound("clear");
+    state.coins -= item.cost;
+    state.ownedItems.push(itemId);
+    spawnParticles(fxCanvas.width / 2, fxCanvas.height / 2, item.color, 35);
+    showToast(`🎉 ${item.name} débloqué !`, "fa-bag-shopping");
+    saveState();
+}
+
+/**
+ * ============================================================================
+ * 10. GESTION DES PARAMÈTRES, EXPORT GITHUB PAGES & HORLOGE QUOTIDIENNE
+ * ============================================================================
+ */
+function openSaveModal() {
+    playSound("pop");
+    document.getElementById("save-modal").classList.remove("hidden");
+    const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+    document.getElementById("save-code-input").value = encoded;
+}
+
+function closeSaveModal() {
+    document.getElementById("save-modal").classList.add("hidden");
+}
+
+function openProfileModal() {
+    openSaveModal();
+}
+
+function showStreakToast() {
+    playSound("pop");
+    showToast(`🔥 Série en cours : ${state.streak} jour(s) consécutifs !`, "fa-fire");
+}
+
+function toggleSound() {
+    state.soundOn = !state.soundOn;
+    const btn = document.getElementById("btn-toggle-sound");
+    btn.innerHTML = `<i class="fa-solid ${state.soundOn ? 'fa-volume-high' : 'fa-volume-xmark'}"></i> Sons: ${state.soundOn ? 'ON' : 'OFF'}`;
+    btn.className = `btn-juicy p-2.5 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center gap-2 text-xs font-bold ${state.soundOn ? 'text-emerald-300' : 'text-slate-400'}`;
+    saveState();
+}
+
+function toggleHaptics() {
+    state.hapticsOn = !state.hapticsOn;
+    const btn = document.getElementById("btn-toggle-haptics");
+    btn.innerHTML = `<i class="fa-solid fa-mobile-screen-button"></i> Vibrations: ${state.hapticsOn ? 'ON' : 'OFF'}`;
+    btn.className = `btn-juicy p-2.5 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center gap-2 text-xs font-bold ${state.hapticsOn ? 'text-emerald-300' : 'text-slate-400'}`;
+    saveState();
+}
+
+function exportSaveCode() {
+    const input = document.getElementById("save-code-input");
+    input.select();
+    document.execCommand("copy");
+    playSound("win");
+    showToast("Code de sauvegarde copié dans le presse-papiers !", "fa-copy");
+}
+
+function importSaveCode() {
+    const raw = document.getElementById("save-code-input").value.trim();
+    if (!raw) return;
+    try {
+        const decoded = JSON.parse(decodeURIComponent(atob(raw)));
+        state = { ...state, ...decoded };
+        saveState();
+        playSound("clear");
+        showToast("Progression restaurée avec succès !", "fa-check");
+        closeSaveModal();
+    } catch (e) {
+        playSound("error");
+        showToast("Code de sauvegarde invalide.", "fa-triangle-exclamation");
+    }
+}
+
+function updateDailyCountdown() {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const diff = Math.max(0, Math.floor((midnight - now) / 1000));
+    const hrs = String(Math.floor(diff / 3600)).padStart(2, "0");
+    const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, "0");
+    const secs = String(diff % 60).padStart(2, "0");
+    const el = document.getElementById("mission-timer");
+    if (el) el.textContent = `${hrs}:${mins}:${secs}`;
+}
+
+window.onload = function () {
+    resizeFxCanvas();
+    requestAnimationFrame(updateParticles);
+    loadState(() => {
+        updateAllUI();
+        initBlastGame();
+        setInterval(updateDailyCountdown, 1000);
+        updateDailyCountdown();
+    });
+};
+</script>
+</body>
+</html>
